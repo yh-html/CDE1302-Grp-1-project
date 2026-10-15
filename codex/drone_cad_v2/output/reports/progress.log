@@ -1,0 +1,46 @@
+Build candidate_arch
+  0.3s, 1 solids, valid=True
+Build candidate_fork
+  1.5s, 1 solids, valid=True
+Build candidate_cage
+  1.8s, 1 solids, valid=True
+Build Frame
+  5.5s, 1 solids, valid=True
+Build Guard_1
+  2.5s, 1 solids, valid=True
+Build Guard_2
+  2.5s, 1 solids, valid=True
+Build Guard_3
+  2.4s, 1 solids, valid=True
+Build Guard_4
+  2.5s, 1 solids, valid=True
+Build BottomPlate
+  1.7s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  0.5s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+Validate prop and bell clearances
+Validate camera FOV and moving cradle at 3-degree intervals
+Nose-down strike angles: CameraCradle_TPU (worst tilt) 33.1, BottomPlate_PETG 40.7, Frame_PETG 49.2, Guard_1_PETG 40.0, Guard_2_PETG 40.0
+Validate assembly collisions with B-rep intersections
+Measure critical wall sections
+Compute mass, CG and inertias
+Validation: {"pass": 216, "fail": 0, "indeterminate": 11}
+Build complete

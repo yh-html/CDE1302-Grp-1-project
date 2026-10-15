@@ -1,0 +1,6 @@
+Build candidate_arch
+  0.4s, 1 solids, valid=True
+Build candidate_fork
+  3.6s, 1 solids, valid=True
+Build candidate_cage
+  4.7s, 1 solids, valid=True

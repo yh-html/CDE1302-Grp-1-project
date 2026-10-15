@@ -1,0 +1,174 @@
+{
+ "rows": [
+  {
+   "comp": "Frame",
+   "body": "Frame",
+   "g": 36.88,
+   "vol_cm3": 29.039
+  },
+  {
+   "comp": "PropGuard",
+   "body": "PropGuard1",
+   "g": 7.23,
+   "vol_cm3": 5.69
+  },
+  {
+   "comp": "PropGuard",
+   "body": "PropGuard2",
+   "g": 7.23,
+   "vol_cm3": 5.69
+  },
+  {
+   "comp": "PropGuard",
+   "body": "PropGuard3",
+   "g": 7.23,
+   "vol_cm3": 5.69
+  },
+  {
+   "comp": "PropGuard",
+   "body": "PropGuard4",
+   "g": 7.23,
+   "vol_cm3": 5.69
+  },
+  {
+   "comp": "BottomPlate",
+   "body": "BottomPlate",
+   "g": 7.93,
+   "vol_cm3": 6.245
+  },
+  {
+   "comp": "BottomPlate",
+   "body": "BatteryPad",
+   "g": 2.11,
+   "vol_cm3": 1.74
+  },
+  {
+   "comp": "CameraMount",
+   "body": "CameraCradle",
+   "g": 5.76,
+   "vol_cm3": 4.761
+  },
+  {
+   "comp": "Foot",
+   "body": "Foot1",
+   "g": 1.27,
+   "vol_cm3": 1.053
+  },
+  {
+   "comp": "Foot",
+   "body": "Foot2",
+   "g": 1.27,
+   "vol_cm3": 1.053
+  },
+  {
+   "comp": "Foot",
+   "body": "Foot3",
+   "g": 1.27,
+   "vol_cm3": 1.053
+  },
+  {
+   "comp": "Foot",
+   "body": "Foot4",
+   "g": 1.27,
+   "vol_cm3": 1.053
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Motor1",
+   "g": 8.5,
+   "vol_cm3": 4.168
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Motor2",
+   "g": 8.5,
+   "vol_cm3": 4.168
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Motor3",
+   "g": 8.5,
+   "vol_cm3": 4.168
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Motor4",
+   "g": 8.5,
+   "vol_cm3": 4.168
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Prop1",
+   "g": 2.0,
+   "vol_cm3": 27.362
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Prop2",
+   "g": 2.0,
+   "vol_cm3": 27.362
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Prop3",
+   "g": 2.0,
+   "vol_cm3": 27.362
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Prop4",
+   "g": 2.0,
+   "vol_cm3": 27.362
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Battery",
+   "g": 76.0,
+   "vol_cm3": 38.28
+  },
+  {
+   "comp": "Placeholders",
+   "body": "FC",
+   "g": 10.0,
+   "vol_cm3": 10.368
+  },
+  {
+   "comp": "Placeholders",
+   "body": "Misc",
+   "g": 20.0,
+   "vol_cm3": 6.48
+  },
+  {
+   "comp": "Placeholders",
+   "body": "MTF02P",
+   "g": 1.5,
+   "vol_cm3": 2.246
+  },
+  {
+   "comp": "Placeholders",
+   "body": "XIAO",
+   "g": 7.0,
+   "vol_cm3": 5.607
+  },
+  {
+   "comp": "Placeholders",
+   "body": "ELRS",
+   "g": 1.5,
+   "vol_cm3": 0.66
+  }
+ ],
+ "M_kg": 0.2446763315902689,
+ "cg_cm": [
+  0.17020113148698907,
+  0.00023215312025833963,
+  0.06388419480329888
+ ],
+ "I_origin_kgcm2": [
+  4.061294139463139,
+  4.42227809643735,
+  6.761640414364874,
+  7.184102771096381e-07,
+  -0.000150198610816194,
+  -0.10575668687530726
+ ]
+}

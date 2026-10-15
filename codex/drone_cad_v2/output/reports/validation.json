@@ -1,0 +1,3757 @@
+{
+  "schema": 1,
+  "geometry_digest": "2ad741455fd677a23196509fa01e3cb6db4efbed8f009bfcf3b009872e895b36",
+  "axes": "CAD x forward, y right, z up; flight mass report x forward, y right, z down",
+  "checks": [
+    {
+      "name": "Frame_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/positive_volume",
+      "status": "pass",
+      "value": 31923.749984416212,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/mesh_volume",
+      "status": "pass",
+      "value": -0.0033984349984881312,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        135.0,
+        135.0,
+        38.20070991467339
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Frame_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        135.0,
+        135.0,
+        38.20070991467339
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/positive_volume",
+      "status": "pass",
+      "value": 7605.846048133567,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/mesh_volume",
+      "status": "pass",
+      "value": 0.00011265184858477717,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        93.82379373034155,
+        93.8237937303551,
+        23.1
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_1_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        93.82379373034155,
+        93.8237937303551,
+        23.1
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/positive_volume",
+      "status": "pass",
+      "value": 7605.844738310386,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/mesh_volume",
+      "status": "pass",
+      "value": 0.00011310541896358828,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        93.8237937303551,
+        93.82379373034155,
+        23.1
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_2_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        93.8237937303551,
+        93.82379373034155,
+        23.1
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/positive_volume",
+      "status": "pass",
+      "value": 7605.846014532731,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/mesh_volume",
+      "status": "pass",
+      "value": 0.0001130627964178732,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        93.82379373034155,
+        93.82379373035508,
+        23.1
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_3_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        93.82379373034155,
+        93.82379373035508,
+        23.1
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/positive_volume",
+      "status": "pass",
+      "value": 7605.835769766592,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/mesh_volume",
+      "status": "pass",
+      "value": 0.00011447139324882727,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        93.8237937303551,
+        93.82379373034155,
+        23.1
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Guard_4_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        93.8237937303551,
+        93.82379373034155,
+        23.1
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/positive_volume",
+      "status": "pass",
+      "value": 8914.84853358837,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/mesh_volume",
+      "status": "pass",
+      "value": -4.998986312287901e-05,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/A1_fit",
+      "status": "pass",
+      "value": [
+        89.5,
+        50.0,
+        24.0
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "BottomPlate_PETG/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        89.5,
+        50.0,
+        24.0
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/positive_volume",
+      "status": "pass",
+      "value": 2778.5061929829767,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/mesh_volume",
+      "status": "pass",
+      "value": -6.746008697433581e-06,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        58.0,
+        30.0,
+        1.6000000000000014
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "BatteryPad_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        58.0,
+        30.0,
+        1.6000000000000014
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/positive_volume",
+      "status": "pass",
+      "value": 3547.6130620358895,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/mesh_volume",
+      "status": "pass",
+      "value": -3.1000454986052084e-05,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        28.8,
+        28.900000000000002,
+        14.994987256894515
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "CameraCradle_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        28.8,
+        28.900000000000002,
+        14.994987256894515
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/positive_volume",
+      "status": "pass",
+      "value": 967.4031136507034,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/mesh_volume",
+      "status": "pass",
+      "value": -0.0009322414720536187,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000004,
+        14.0
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_1_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000004,
+        14.0
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/positive_volume",
+      "status": "pass",
+      "value": 967.4031136507032,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/mesh_volume",
+      "status": "pass",
+      "value": -0.0009322414720537298,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000002,
+        14.0
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_2_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000002,
+        14.0
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/positive_volume",
+      "status": "pass",
+      "value": 967.4031136507032,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/mesh_volume",
+      "status": "pass",
+      "value": -0.0009322414720533967,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000004,
+        14.0
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_3_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000004,
+        14.0
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/valid",
+      "status": "pass",
+      "value": null,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/one_solid",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/positive_volume",
+      "status": "pass",
+      "value": 967.4031136507033,
+      "limit": ">1 mm3",
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/watertight",
+      "status": "pass",
+      "value": {
+        "watertight": true,
+        "winding": true
+      },
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/mesh_components",
+      "status": "pass",
+      "value": 1,
+      "limit": 1,
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/mesh_volume",
+      "status": "pass",
+      "value": -0.0009322414720539518,
+      "limit": "+/-1%",
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/A1_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000002,
+        14.0
+      ],
+      "limit": [
+        256,
+        256,
+        256
+      ],
+      "note": ""
+    },
+    {
+      "name": "Foot_4_TPU/A1_mini_fit",
+      "status": "pass",
+      "value": [
+        12.0,
+        12.000000000000002,
+        14.0
+      ],
+      "limit": [
+        180,
+        180,
+        180
+      ],
+      "note": ""
+    },
+    {
+      "name": "motor_16_through_holes",
+      "status": "pass",
+      "value": 0.0,
+      "limit": "zero intersection mm3",
+      "note": ""
+    },
+    {
+      "name": "motor_radial_slot_travel",
+      "status": "pass",
+      "value": 0.0,
+      "limit": "zero intersection mm3",
+      "note": ""
+    },
+    {
+      "name": "FC_25p5_pattern_through_holes",
+      "status": "pass",
+      "value": 0.0,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "plate_and_hollow_leg_hole_alignment",
+      "status": "pass",
+      "value": 0.0,
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "key_radial_clearance",
+      "status": "pass",
+      "value": 0.19999999999999996,
+      "limit": ">=0.15 mm",
+      "note": ""
+    },
+    {
+      "name": "motor_radius_rounding",
+      "status": "pass",
+      "value": 77.78174593052022,
+      "limit": "arm_r 77.8 +/-0.05",
+      "note": ""
+    },
+    {
+      "name": "Prop_1/Frame_PETG",
+      "status": "pass",
+      "value": 4.160414652437152,
+      "limit": 4.0,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_1/Guard_1_PETG",
+      "status": "pass",
+      "value": 4.927799249551722,
+      "limit": 3,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_1/Guard_2_PETG",
+      "status": "pass",
+      "value": 25.847016066135772,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Guard_3_PETG",
+      "status": "pass",
+      "value": 36.51371108703885,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Guard_4_PETG",
+      "status": "pass",
+      "value": 25.791139133909088,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/BottomPlate_PETG",
+      "status": "pass",
+      "value": 31.538878153640788,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/BatteryPad_TPU",
+      "status": "pass",
+      "value": 51.477748276549455,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/CameraCradle_TPU",
+      "status": "pass",
+      "value": 24.459314897350918,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Foot_1_TPU",
+      "status": "pass",
+      "value": 71.88264991586624,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Foot_2_TPU",
+      "status": "pass",
+      "value": 64.21912799987889,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Foot_3_TPU",
+      "status": "pass",
+      "value": 64.24719806919245,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/Foot_4_TPU",
+      "status": "pass",
+      "value": 55.539927096458186,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_1/FC",
+      "status": "pass",
+      "value": 15.112454540718913,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_1/Battery",
+      "status": "pass",
+      "value": 31.02503726534464,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_1/Camera",
+      "status": "pass",
+      "value": 28.307094113672516,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_1/MTF02P",
+      "status": "pass",
+      "value": 63.4553305292383,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_1/ELRS",
+      "status": "pass",
+      "value": 55.61194406255275,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Guard_1/bell_spoke_clearance",
+      "status": "pass",
+      "value": 2.282138796906057,
+      "limit": 1.5,
+      "note": ""
+    },
+    {
+      "name": "Guard_1/vertical_spoke_gap",
+      "status": "pass",
+      "value": 5.246354037394575,
+      "limit": 3.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_2/Frame_PETG",
+      "status": "pass",
+      "value": 4.160414652437146,
+      "limit": 4.0,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_2/Guard_1_PETG",
+      "status": "pass",
+      "value": 25.84701606618126,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Guard_2_PETG",
+      "status": "pass",
+      "value": 4.927799249551722,
+      "limit": 3,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_2/Guard_3_PETG",
+      "status": "pass",
+      "value": 25.791139133863616,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Guard_4_PETG",
+      "status": "pass",
+      "value": 36.51371108703877,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/BottomPlate_PETG",
+      "status": "pass",
+      "value": 31.538878153640788,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/BatteryPad_TPU",
+      "status": "pass",
+      "value": 51.477748276549455,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/CameraCradle_TPU",
+      "status": "pass",
+      "value": 24.459314897350918,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Foot_1_TPU",
+      "status": "pass",
+      "value": 64.21912799987889,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Foot_2_TPU",
+      "status": "pass",
+      "value": 71.88264991586624,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Foot_3_TPU",
+      "status": "pass",
+      "value": 55.539927096458186,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/Foot_4_TPU",
+      "status": "pass",
+      "value": 64.24719806919245,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_2/FC",
+      "status": "pass",
+      "value": 15.112454540718915,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_2/Battery",
+      "status": "pass",
+      "value": 31.02503726534464,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_2/Camera",
+      "status": "pass",
+      "value": 28.307094113672516,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_2/MTF02P",
+      "status": "pass",
+      "value": 63.4553305292383,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_2/ELRS",
+      "status": "pass",
+      "value": 55.61194406255275,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Guard_2/bell_spoke_clearance",
+      "status": "pass",
+      "value": 2.282138796906057,
+      "limit": 1.5,
+      "note": ""
+    },
+    {
+      "name": "Guard_2/vertical_spoke_gap",
+      "status": "pass",
+      "value": 5.246354037394575,
+      "limit": 3.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_3/Frame_PETG",
+      "status": "pass",
+      "value": 4.160414652437153,
+      "limit": 4.0,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_3/Guard_1_PETG",
+      "status": "pass",
+      "value": 36.51371108703883,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Guard_2_PETG",
+      "status": "pass",
+      "value": 25.791139133909084,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Guard_3_PETG",
+      "status": "pass",
+      "value": 4.927799249551717,
+      "limit": 3,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_3/Guard_4_PETG",
+      "status": "pass",
+      "value": 25.84701606613578,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/BottomPlate_PETG",
+      "status": "pass",
+      "value": 31.538878153640788,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/BatteryPad_TPU",
+      "status": "pass",
+      "value": 51.477748276549455,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/CameraCradle_TPU",
+      "status": "pass",
+      "value": 57.588645170854505,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Foot_1_TPU",
+      "status": "pass",
+      "value": 55.539927096458186,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Foot_2_TPU",
+      "status": "pass",
+      "value": 64.24719806919245,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Foot_3_TPU",
+      "status": "pass",
+      "value": 64.21912799987889,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/Foot_4_TPU",
+      "status": "pass",
+      "value": 71.88264991586624,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_3/FC",
+      "status": "pass",
+      "value": 15.112454540718915,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_3/Battery",
+      "status": "pass",
+      "value": 31.02503726534464,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_3/Camera",
+      "status": "pass",
+      "value": 79.07754048278453,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_3/MTF02P",
+      "status": "pass",
+      "value": 58.72289431525272,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_3/ELRS",
+      "status": "pass",
+      "value": 15.155616761172523,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Guard_3/bell_spoke_clearance",
+      "status": "pass",
+      "value": 2.2821387969060583,
+      "limit": 1.5,
+      "note": ""
+    },
+    {
+      "name": "Guard_3/vertical_spoke_gap",
+      "status": "pass",
+      "value": 5.246354037394575,
+      "limit": 3.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_4/Frame_PETG",
+      "status": "pass",
+      "value": 4.160414652437154,
+      "limit": 4.0,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_4/Guard_1_PETG",
+      "status": "pass",
+      "value": 25.791139133863602,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Guard_2_PETG",
+      "status": "pass",
+      "value": 36.51371108703877,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Guard_3_PETG",
+      "status": "pass",
+      "value": 25.847016066181272,
+      "limit": 3,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Guard_4_PETG",
+      "status": "pass",
+      "value": 4.927799249551716,
+      "limit": 3,
+      "note": "exact B-rep minimum"
+    },
+    {
+      "name": "Prop_4/BottomPlate_PETG",
+      "status": "pass",
+      "value": 31.538878153640795,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/BatteryPad_TPU",
+      "status": "pass",
+      "value": 51.47774827654946,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/CameraCradle_TPU",
+      "status": "pass",
+      "value": 57.58864517085453,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Foot_1_TPU",
+      "status": "pass",
+      "value": 64.24719806919248,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Foot_2_TPU",
+      "status": "pass",
+      "value": 55.5399270964582,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Foot_3_TPU",
+      "status": "pass",
+      "value": 71.88264991586627,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/Foot_4_TPU",
+      "status": "pass",
+      "value": 64.2191279998789,
+      "limit": 4.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Prop_4/FC",
+      "status": "pass",
+      "value": 15.112454540718918,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_4/Battery",
+      "status": "pass",
+      "value": 31.02503726534464,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_4/Camera",
+      "status": "pass",
+      "value": 79.07754048278453,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_4/MTF02P",
+      "status": "pass",
+      "value": 58.72289431525272,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Prop_4/ELRS",
+      "status": "pass",
+      "value": 15.15561676117252,
+      "limit": 4.0,
+      "note": ""
+    },
+    {
+      "name": "Guard_4/bell_spoke_clearance",
+      "status": "pass",
+      "value": 2.282138796906057,
+      "limit": 1.5,
+      "note": ""
+    },
+    {
+      "name": "Guard_4/vertical_spoke_gap",
+      "status": "pass",
+      "value": 5.246354037394582,
+      "limit": 3.0,
+      "note": ""
+    },
+    {
+      "name": "Guard_1_2/separation",
+      "status": "pass",
+      "value": 17.894032332317074,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Guard_1_3/separation",
+      "status": "pass",
+      "value": 25.305983209905488,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Guard_1_4/separation",
+      "status": "pass",
+      "value": 17.89403233231708,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Guard_2_3/separation",
+      "status": "pass",
+      "value": 17.894032332317092,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Guard_2_4/separation",
+      "status": "pass",
+      "value": 25.305983209905477,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "Guard_3_4/separation",
+      "status": "pass",
+      "value": 17.894032332317085,
+      "limit": 10.0,
+      "note": "conservative AABB lower bound"
+    },
+    {
+      "name": "guard_min_ID",
+      "status": "pass",
+      "value": 88.0,
+      "limit": ">=82.2 mm",
+      "note": ""
+    },
+    {
+      "name": "guard_ring_covers_prop_plane",
+      "status": "pass",
+      "value": 3.0,
+      "limit": ">=3 mm above and below the prop envelope",
+      "note": ""
+    },
+    {
+      "name": "FC_insertion_through_deck",
+      "status": "pass",
+      "value": 0.0,
+      "limit": "zero mm3; 0.2 mm perimeter allowance",
+      "note": ""
+    },
+    {
+      "name": "USB_side_access",
+      "status": "pass",
+      "value": 0.0,
+      "limit": "zero mm3; +y connector assumption",
+      "note": ""
+    },
+    {
+      "name": "flow_42deg_cone",
+      "status": "pass",
+      "value": [],
+      "limit": "zero obstacles, 100 mm long solid cone including aperture",
+      "note": ""
+    },
+    {
+      "name": "flow_ground_clearance",
+      "status": "pass",
+      "value": 8.799999999999997,
+      "limit": ">=5 mm",
+      "note": ""
+    },
+    {
+      "name": "battery_ground_clearance",
+      "status": "pass",
+      "value": 18.099999899999997,
+      "limit": ">=5 mm",
+      "note": ""
+    },
+    {
+      "name": "camera_FOV_sampled",
+      "status": "pass",
+      "value": [],
+      "limit": "full rectangular frustum at 3 deg tilt increments, 240 mm range",
+      "note": ""
+    },
+    {
+      "name": "camera_cradle_motion_sampled",
+      "status": "pass",
+      "value": [],
+      "limit": "zero overlap at 3 deg increments",
+      "note": ""
+    },
+    {
+      "name": "camera_motion_prop_clearance",
+      "status": "pass",
+      "value": 23.501411109176743,
+      "limit": 4.425047208423403,
+      "note": "4 mm plus conservative maximum between-sample rotational travel; camera and cradle every 3 degrees"
+    },
+    {
+      "name": "camera_ground_clearance",
+      "status": "pass",
+      "value": 14.27923418550408,
+      "limit": ">=5 mm, lowest cradle point over the tilt range",
+      "note": ""
+    },
+    {
+      "name": "camera_actual_optics",
+      "status": "indeterminate",
+      "note": "Field 91 x 82 deg derived from the firmware calibration (main/at_detect.c, QVGA); lens protrusion and board orientation are still placeholders. Mechanical sweep sampled every 3 deg, not continuous proof."
+    },
+    {
+      "name": "assembly_collisions",
+      "status": "pass",
+      "value": [],
+      "limit": "zero unintended common volume > 1e-4 mm3",
+      "note": ""
+    },
+    {
+      "name": "wall/deck",
+      "status": "pass",
+      "value": 3.200000000000003,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/motor_pad",
+      "status": "pass",
+      "value": 5.0,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/plate",
+      "status": "pass",
+      "value": 2.5,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/battery_pad",
+      "status": "pass",
+      "value": 1.6000000000000014,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/cradle_back",
+      "status": "pass",
+      "value": 2.4000000000000004,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/nose_cheek_web",
+      "status": "pass",
+      "value": 3.1999999999999993,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/web",
+      "status": "pass",
+      "value": 3.8,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/tip_chord",
+      "status": "pass",
+      "value": 4.4,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/tie",
+      "status": "pass",
+      "value": 3.2,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/guard_spoke",
+      "status": "pass",
+      "value": 3.2,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/guard_rib",
+      "status": "pass",
+      "value": 1.8,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/ring_midwall",
+      "status": "pass",
+      "value": 2.4,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/foot",
+      "status": "pass",
+      "value": 2.0,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/hollow_leg",
+      "status": "pass",
+      "value": 2.55,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/motor_slot_edge",
+      "status": "pass",
+      "value": 2.36471862576143,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/guard_key_edge",
+      "status": "pass",
+      "value": 2.0000000000000004,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/camera_window_to_tie_slot",
+      "status": "pass",
+      "value": 1.5999999999999996,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "wall/receiver_floor_slot_to_wall",
+      "status": "pass",
+      "value": 1.5999999999999999,
+      "limit": 1.6,
+      "note": ""
+    },
+    {
+      "name": "continuous_minimum_wall",
+      "status": "indeterminate",
+      "note": "Critical line sections and analytic nominal member bounds checked; no certified global medial-axis wall analysis. Rounded free edges taper by construction; inspect slicer thin-wall preview and print coupons."
+    },
+    {
+      "name": "inertia_positive_definite",
+      "status": "pass",
+      "value": [
+        0.00046651219372695845,
+        0.0005191345791334589,
+        0.0008085229603195657
+      ],
+      "limit": null,
+      "note": ""
+    },
+    {
+      "name": "legacy_exports_untouched",
+      "status": "pass",
+      "value": 15,
+      "limit": 15,
+      "note": "Read-only comparison with initial SHA256 manifest, searching original paths and rev1. See details.legacy_preservation for missing baseline hashes. This project writes only under codex/drone_cad and does not restore or overwrite external exports."
+    },
+    {
+      "name": "safe_motor_thread_engagement",
+      "status": "indeterminate",
+      "note": "M2x10 nominal engagement 3.0 mm, without washer allowance. Maximum safe motor thread depth unknown. Verify engagement and winding clearance; do not fit longer unverified screws."
+    },
+    {
+      "name": "MTF_mount_holes",
+      "status": "indeterminate",
+      "note": "Unknown pitch: retention nest uses foam tape plus a nonoptical retaining strap; verify actual board and lens/connector offsets."
+    },
+    {
+      "name": "ELRS_fit",
+      "status": "indeterminate",
+      "note": "20 x 12 x 4 mm placeholder with antenna notch and ties. Measure real board/antenna bend radius."
+    },
+    {
+      "name": "strap_fit",
+      "status": "indeterminate",
+      "note": "12 x 2 mm placeholder strap, 1 mm width / 0.6 mm thickness allowance. Check threading and secure battery under inversion."
+    },
+    {
+      "name": "material_density",
+      "status": "indeterminate",
+      "note": "PETG 1.27 and TPU 1.21 g/cm3 placeholders; weigh actual prints. Solid-volume mass is not slicer mass."
+    },
+    {
+      "name": "physical_mass_CG",
+      "status": "indeterminate",
+      "note": "Current drone actual all-up mass and CG not supplied; compare measured assembled prototype with estimates."
+    },
+    {
+      "name": "physical_strength",
+      "status": "indeterminate",
+      "note": "No FEA, fatigue, crash, layer adhesion, motor vibration or flight qualification. Geometry validity is not proof of structural safety."
+    },
+    {
+      "name": "motor_prop_envelope",
+      "status": "indeterminate",
+      "note": "Hub seating and full blade axial swept envelope assumed. Measure physical prop height/sweep and rerun clearances."
+    },
+    {
+      "name": "electrical_routing",
+      "status": "indeterminate",
+      "note": "USB corridor and antenna notch modeled; solder joints, flex cables, wire bend radii and screw-tool sweeps require dry assembly."
+    }
+  ],
+  "details": {
+    "parts": [
+      {
+        "name": "Frame_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          135.01787290262808,
+          135.01787290262808,
+          38.332079034399236
+        ],
+        "print_bbox_mm": [
+          135.0,
+          135.0,
+          38.20070991467339
+        ],
+        "volume_mm3": 31923.749984416212,
+        "mass_g": 40.543162480208586,
+        "support_candidate_area_mm2": 1648.6785342670682
+      },
+      {
+        "name": "Guard_1_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          93.86994846948657,
+          93.86994846944111,
+          23.254553086111844
+        ],
+        "print_bbox_mm": [
+          93.82379373034155,
+          93.8237937303551,
+          23.1
+        ],
+        "volume_mm3": 7605.846048133567,
+        "mass_g": 9.65942448112963,
+        "support_candidate_area_mm2": 427.75956993814276
+      },
+      {
+        "name": "Guard_2_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          93.86994846944111,
+          93.86994846948657,
+          23.254553086111844
+        ],
+        "print_bbox_mm": [
+          93.8237937303551,
+          93.82379373034155,
+          23.1
+        ],
+        "volume_mm3": 7605.844738310386,
+        "mass_g": 9.659422817654189,
+        "support_candidate_area_mm2": 427.7595699381428
+      },
+      {
+        "name": "Guard_3_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          93.86994846948656,
+          93.86994846944107,
+          23.254553086111827
+        ],
+        "print_bbox_mm": [
+          93.82379373034155,
+          93.82379373035508,
+          23.1
+        ],
+        "volume_mm3": 7605.846014532731,
+        "mass_g": 9.659424438456568,
+        "support_candidate_area_mm2": 427.75956993814066
+      },
+      {
+        "name": "Guard_4_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          93.86994846944108,
+          93.86994846948657,
+          23.254553086111834
+        ],
+        "print_bbox_mm": [
+          93.8237937303551,
+          93.82379373034155,
+          23.1
+        ],
+        "volume_mm3": 7605.835769766592,
+        "mass_g": 9.659411427603573,
+        "support_candidate_area_mm2": 427.759569938141
+      },
+      {
+        "name": "BottomPlate_PETG",
+        "material": "PETG",
+        "quantity": 1,
+        "bbox_mm": [
+          89.50734279972181,
+          50.00419597126962,
+          24.00734279972182
+        ],
+        "print_bbox_mm": [
+          89.5,
+          50.0,
+          24.0
+        ],
+        "volume_mm3": 8914.84853358837,
+        "mass_g": 11.321857637657232,
+        "support_candidate_area_mm2": 219.66684867816053
+      },
+      {
+        "name": "BatteryPad_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          58.00279738084641,
+          30.00279738084641,
+          1.602797380846411
+        ],
+        "print_bbox_mm": [
+          58.0,
+          30.0,
+          1.6000000000000014
+        ],
+        "volume_mm3": 2778.5061929829767,
+        "mass_g": 3.361992493509402,
+        "support_candidate_area_mm2": 0.0
+      },
+      {
+        "name": "CameraCradle_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          30.193459756665774,
+          28.90000020000002,
+          30.19345975666578
+        ],
+        "print_bbox_mm": [
+          28.8,
+          28.900000000000002,
+          14.994987256894515
+        ],
+        "volume_mm3": 3547.6130620358895,
+        "mass_g": 4.292611805063426,
+        "support_candidate_area_mm2": 562.1887549010494
+      },
+      {
+        "name": "Foot_1_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          12.008391742539224,
+          12.008391742539224,
+          14.008391742539231
+        ],
+        "print_bbox_mm": [
+          12.0,
+          12.000000000000004,
+          14.0
+        ],
+        "volume_mm3": 967.4031136507034,
+        "mass_g": 1.170557767517351,
+        "support_candidate_area_mm2": 0.0
+      },
+      {
+        "name": "Foot_2_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          12.008391742539224,
+          12.008391742539224,
+          14.008391742539231
+        ],
+        "print_bbox_mm": [
+          12.0,
+          12.000000000000002,
+          14.0
+        ],
+        "volume_mm3": 967.4031136507032,
+        "mass_g": 1.1705577675173509,
+        "support_candidate_area_mm2": 0.0
+      },
+      {
+        "name": "Foot_3_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          12.008391742539224,
+          12.008391742539224,
+          14.008391742539231
+        ],
+        "print_bbox_mm": [
+          12.0,
+          12.000000000000004,
+          14.0
+        ],
+        "volume_mm3": 967.4031136507032,
+        "mass_g": 1.1705577675173509,
+        "support_candidate_area_mm2": 0.0
+      },
+      {
+        "name": "Foot_4_TPU",
+        "material": "TPU",
+        "quantity": 1,
+        "bbox_mm": [
+          12.008391742539224,
+          12.008391742539224,
+          14.008391742539231
+        ],
+        "print_bbox_mm": [
+          12.0,
+          12.000000000000002,
+          14.0
+        ],
+        "volume_mm3": 967.4031136507033,
+        "mass_g": 1.1705577675173509,
+        "support_candidate_area_mm2": 0.0
+      }
+    ],
+    "prop_clearances": [
+      {
+        "prop": 1,
+        "part": "Frame_PETG",
+        "distance_mm": 4.160414652437152,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 1,
+        "part": "Guard_1_PETG",
+        "distance_mm": 4.927799249551722,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 1,
+        "part": "Guard_2_PETG",
+        "distance_mm": 25.847016066135772,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Guard_3_PETG",
+        "distance_mm": 36.51371108703885,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Guard_4_PETG",
+        "distance_mm": 25.791139133909088,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "BottomPlate_PETG",
+        "distance_mm": 31.538878153640788,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "BatteryPad_TPU",
+        "distance_mm": 51.477748276549455,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "CameraCradle_TPU",
+        "distance_mm": 24.459314897350918,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Foot_1_TPU",
+        "distance_mm": 71.88264991586624,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Foot_2_TPU",
+        "distance_mm": 64.21912799987889,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Foot_3_TPU",
+        "distance_mm": 64.24719806919245,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 1,
+        "part": "Foot_4_TPU",
+        "distance_mm": 55.539927096458186,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Frame_PETG",
+        "distance_mm": 4.160414652437146,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 2,
+        "part": "Guard_1_PETG",
+        "distance_mm": 25.84701606618126,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Guard_2_PETG",
+        "distance_mm": 4.927799249551722,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 2,
+        "part": "Guard_3_PETG",
+        "distance_mm": 25.791139133863616,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Guard_4_PETG",
+        "distance_mm": 36.51371108703877,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "BottomPlate_PETG",
+        "distance_mm": 31.538878153640788,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "BatteryPad_TPU",
+        "distance_mm": 51.477748276549455,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "CameraCradle_TPU",
+        "distance_mm": 24.459314897350918,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Foot_1_TPU",
+        "distance_mm": 64.21912799987889,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Foot_2_TPU",
+        "distance_mm": 71.88264991586624,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Foot_3_TPU",
+        "distance_mm": 55.539927096458186,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 2,
+        "part": "Foot_4_TPU",
+        "distance_mm": 64.24719806919245,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Frame_PETG",
+        "distance_mm": 4.160414652437153,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 3,
+        "part": "Guard_1_PETG",
+        "distance_mm": 36.51371108703883,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Guard_2_PETG",
+        "distance_mm": 25.791139133909084,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Guard_3_PETG",
+        "distance_mm": 4.927799249551717,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 3,
+        "part": "Guard_4_PETG",
+        "distance_mm": 25.84701606613578,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "BottomPlate_PETG",
+        "distance_mm": 31.538878153640788,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "BatteryPad_TPU",
+        "distance_mm": 51.477748276549455,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "CameraCradle_TPU",
+        "distance_mm": 57.588645170854505,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Foot_1_TPU",
+        "distance_mm": 55.539927096458186,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Foot_2_TPU",
+        "distance_mm": 64.24719806919245,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Foot_3_TPU",
+        "distance_mm": 64.21912799987889,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 3,
+        "part": "Foot_4_TPU",
+        "distance_mm": 71.88264991586624,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Frame_PETG",
+        "distance_mm": 4.160414652437154,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 4,
+        "part": "Guard_1_PETG",
+        "distance_mm": 25.791139133863602,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Guard_2_PETG",
+        "distance_mm": 36.51371108703877,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Guard_3_PETG",
+        "distance_mm": 25.847016066181272,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Guard_4_PETG",
+        "distance_mm": 4.927799249551716,
+        "method": "exact B-rep minimum"
+      },
+      {
+        "prop": 4,
+        "part": "BottomPlate_PETG",
+        "distance_mm": 31.538878153640795,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "BatteryPad_TPU",
+        "distance_mm": 51.47774827654946,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "CameraCradle_TPU",
+        "distance_mm": 57.58864517085453,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Foot_1_TPU",
+        "distance_mm": 64.24719806919248,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Foot_2_TPU",
+        "distance_mm": 55.5399270964582,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Foot_3_TPU",
+        "distance_mm": 71.88264991586627,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "prop": 4,
+        "part": "Foot_4_TPU",
+        "distance_mm": 64.2191279998789,
+        "method": "conservative AABB lower bound"
+      }
+    ],
+    "camera_motion_prop_gaps": [
+      {
+        "angle": 30.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 23.501411109176743,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 27.193370665383384,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 23.501411109176743,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 27.193370665383384,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 58.985550434431254,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 63.49760829014447,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 58.98555043443126,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 30.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 63.497608290144484,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 23.60904395106744,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 27.340107422812537,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 23.60904395106744,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 27.340107422812537,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 58.60012452215928,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 63.17605282328674,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 58.60012452215928,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 33.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 63.176052823286746,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 23.759110189797408,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 27.519779142203372,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 23.759110189797408,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 27.519779142203372,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 58.26646326537627,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.89486974685752,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 58.266463265376274,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 36.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.89486974685754,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 23.95120696081856,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 27.73191823189743,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 23.95120696081856,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 27.73191823189743,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.98589208651133,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.65514191625306,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.98589208651134,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 39.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.65514191625307,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 24.184818061561263,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 27.975971076733195,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 24.184818061561263,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 27.975971076733195,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.75960345724793,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.45783605579864,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.75960345724794,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 42.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.45783605579865,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 24.459315006864777,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 28.251298829049848,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 24.459315006864777,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 28.251298829049848,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.58864530790013,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.3037945601924,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.58864530790015,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 45.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.30379456019241,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 24.773958358426974,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 28.55717841016413,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 24.773958358426974,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 28.55717841016413,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.473909444848125,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.193727658897366,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.473909444848125,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 48.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.19372765889738,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 25.127899345307362,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 28.892803747230584,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 25.127899345307362,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 28.892803747230584,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.41612027428746,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.1282061130749,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.41612027428747,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 51.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.12820611307492,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 25.520181790548982,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 29.257287267130263,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 25.520181790548982,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 29.257287267130263,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.415824147852796,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.10765461354895,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.4158241478528,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 54.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.10765461354897,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 25.949744355688818,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 29.649661664633026,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 25.949744355688818,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 29.649661664633026,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.47337964801733,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.1323460403941,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.47337964801733,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 57.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.1323460403941,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 26.415423110699656,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 30.068881956928212,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 26.415423110699656,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 30.068881956928212,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.588949117426296,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.202396730072266,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.5889491174263,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 60.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.20239673007228,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 26.91595443218251,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 30.51382783110628,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 26.91595443218251,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 30.51382783110628,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.76249170660085,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.31776287505981,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.76249170660085,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 63.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.317762875059834,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 27.44997822781959,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 30.98330628565915,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 27.44997822781959,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 30.98330628565915,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 57.99375817014329,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.478238154489745,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 57.9937581701433,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 66.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.47823815448976,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 28.016041480549884,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 31.47605456185094,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 28.016041480549884,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 31.47605456185094,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 58.28228758529531,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.683452663739715,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 58.28228758529531,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 69.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.68345266373972,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 28.612602101897266,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 31.99074335612355,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 28.612602101897266,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 31.99074335612355,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 58.627406102042556,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 62.932873177659474,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 58.62740610204257,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 72.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 62.93287317765949,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "cradle",
+        "prop": 1,
+        "gap_mm": 29.238033080519784,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "camera",
+        "prop": 1,
+        "gap_mm": 32.525980300695394,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "cradle",
+        "prop": 2,
+        "gap_mm": 29.238033080519784,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "camera",
+        "prop": 2,
+        "gap_mm": 32.525980300695394,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "cradle",
+        "prop": 3,
+        "gap_mm": 59.028227765161525,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "camera",
+        "prop": 3,
+        "gap_mm": 63.22580474795294,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "cradle",
+        "prop": 4,
+        "gap_mm": 59.02822776516154,
+        "method": "conservative AABB lower bound"
+      },
+      {
+        "angle": 75.0,
+        "part": "camera",
+        "prop": 4,
+        "gap_mm": 63.22580474795296,
+        "method": "conservative AABB lower bound"
+      }
+    ],
+    "camera": {
+      "sample_angles_deg": [
+        30.0,
+        33.0,
+        36.0,
+        39.0,
+        42.0,
+        45.0,
+        48.0,
+        51.0,
+        54.0,
+        57.0,
+        60.0,
+        63.0,
+        66.0,
+        69.0,
+        72.0,
+        75.0
+      ],
+      "nominal_detent_axial_gap_mm": 0.05,
+      "hfov": 91.0,
+      "vfov": 82.0,
+      "unresolved": "Actual lens FOV/optical center; sampled tilt does not prove unsampled intermediate states. The axial gap is the design value, not a global minimum-distance measurement."
+    },
+    "nose_down_strike_deg": {
+      "CameraCradle_TPU (worst tilt)": 33.110905191590554,
+      "BottomPlate_PETG": 40.73769819911955,
+      "Frame_PETG": 49.22664647426765,
+      "Guard_1_PETG": 39.97109903487079,
+      "Guard_2_PETG": 39.97109903487078
+    },
+    "intentional_engagements": [
+      [
+        "Shaft_1",
+        "Prop_1",
+        "shaft/hub engagement"
+      ],
+      [
+        "Shaft_2",
+        "Prop_2",
+        "shaft/hub engagement"
+      ],
+      [
+        "Shaft_3",
+        "Prop_3",
+        "shaft/hub engagement"
+      ],
+      [
+        "Shaft_4",
+        "Prop_4",
+        "shaft/hub engagement"
+      ]
+    ],
+    "wall_samples": [
+      {
+        "name": "deck",
+        "point": [
+          0,
+          21,
+          30.6
+        ],
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "thickness_mm": 3.200000000000003
+      },
+      {
+        "name": "motor_pad",
+        "point": [
+          65,
+          55,
+          2.5
+        ],
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "thickness_mm": 5.0
+      },
+      {
+        "name": "plate",
+        "point": [
+          25,
+          11,
+          -31.25
+        ],
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "thickness_mm": 2.5
+      },
+      {
+        "name": "battery_pad",
+        "point": [
+          0,
+          0,
+          -29.2
+        ],
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "thickness_mm": 1.6000000000000014
+      },
+      {
+        "name": "cradle_back",
+        "point": [
+          -5.2,
+          10,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "thickness_mm": 2.4000000000000004
+      },
+      {
+        "name": "nose_cheek_web",
+        "point": [
+          46.0,
+          16.1,
+          -25.0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "thickness_mm": 3.1999999999999993
+      }
+    ],
+    "mass": {
+      "printed_structure_g": 102.83953865135202,
+      "all_up_g": 260.83953865135203,
+      "cg_flight_mm": [
+        2.164632730509329,
+        -2.53288058261372e-06,
+        0.9940109102493313
+      ],
+      "inertia_CG_kg_m2": [
+        [
+          0.00046709497195522197,
+          -8.390883003981959e-11,
+          -1.4105913585890705e-05
+        ],
+        [
+          -8.390883003981959e-11,
+          0.0005191345791333244,
+          -7.226310104274737e-12
+        ],
+        [
+          -1.4105913585890705e-05,
+          -7.226310104274737e-12,
+          0.0008079401820914364
+        ]
+      ],
+      "J_diagonal_kg_m2": [
+        0.00046709497195522197,
+        0.0005191345791333244,
+        0.0008079401820914364
+      ],
+      "thrust_to_weight_simulation": 4.837473776631434,
+      "items": [
+        {
+          "name": "Frame_PETG",
+          "mass_g": 40.543162480208586,
+          "cg_cad_mm": [
+            -1.2944984119293812,
+            2.1226824454103745e-06,
+            8.748797800792742
+          ]
+        },
+        {
+          "name": "Guard_1_PETG",
+          "mass_g": 9.65942448112963,
+          "cg_cad_mm": [
+            63.44530241993461,
+            63.44526048584233,
+            17.78206934940318
+          ]
+        },
+        {
+          "name": "Guard_2_PETG",
+          "mass_g": 9.659422817654189,
+          "cg_cad_mm": [
+            63.445275462905634,
+            -63.44528990411757,
+            17.782067623210672
+          ]
+        },
+        {
+          "name": "Guard_3_PETG",
+          "mass_g": 9.659424438456568,
+          "cg_cad_mm": [
+            -63.445253172798765,
+            -63.4452052860417,
+            17.782065729384907
+          ]
+        },
+        {
+          "name": "Guard_4_PETG",
+          "mass_g": 9.659411427603573,
+          "cg_cad_mm": [
+            -63.4452231819824,
+            63.44523192995327,
+            17.78206516611751
+          ]
+        },
+        {
+          "name": "BottomPlate_PETG",
+          "mass_g": 11.321857637657232,
+          "cg_cad_mm": [
+            11.054124216851134,
+            -4.89721479556977e-15,
+            -28.747655039458802
+          ]
+        },
+        {
+          "name": "BatteryPad_TPU",
+          "mass_g": 3.361992493509402,
+          "cg_cad_mm": [
+            -8.728919057973433e-16,
+            2.9323712460379504e-16,
+            -29.200000000000156
+          ]
+        },
+        {
+          "name": "CameraCradle_TPU",
+          "mass_g": 4.292611805063426,
+          "cg_cad_mm": [
+            47.74481010203059,
+            8.545867145900206e-17,
+            -17.08524540934888
+          ]
+        },
+        {
+          "name": "Foot_1_TPU",
+          "mass_g": 1.170557767517351,
+          "cg_cad_mm": [
+            -21.400000000000006,
+            -21.400000000000006,
+            -38.95616855001142
+          ]
+        },
+        {
+          "name": "Foot_2_TPU",
+          "mass_g": 1.1705577675173509,
+          "cg_cad_mm": [
+            -21.400000000000006,
+            21.4,
+            -38.95616855001141
+          ]
+        },
+        {
+          "name": "Foot_3_TPU",
+          "mass_g": 1.1705577675173509,
+          "cg_cad_mm": [
+            21.4,
+            -21.4,
+            -38.956168550011405
+          ]
+        },
+        {
+          "name": "Foot_4_TPU",
+          "mass_g": 1.1705577675173509,
+          "cg_cad_mm": [
+            21.4,
+            21.39999999999999,
+            -38.95616855001141
+          ]
+        },
+        {
+          "name": "Battery",
+          "mass_g": 76.0,
+          "cg_cad_mm": [
+            0.0,
+            0.0,
+            -17.4
+          ]
+        },
+        {
+          "name": "FC",
+          "mass_g": 10.0,
+          "cg_cad_mm": [
+            0.0,
+            0.0,
+            14.0
+          ]
+        },
+        {
+          "name": "Camera",
+          "mass_g": 7.0,
+          "cg_cad_mm": [
+            49.99999999999995,
+            0.0,
+            -15.999999999999973
+          ]
+        },
+        {
+          "name": "MTF02P",
+          "mass_g": 1.5,
+          "cg_cad_mm": [
+            -8.0,
+            0.0,
+            -34.70000000000001
+          ]
+        },
+        {
+          "name": "ELRS",
+          "mass_g": 1.5,
+          "cg_cad_mm": [
+            -34.0,
+            0.0,
+            36.20000000000004
+          ]
+        },
+        {
+          "name": "Motor_1",
+          "mass_g": 8.5,
+          "cg_cad_mm": [
+            55.000000000000014,
+            55.000000000000014,
+            14.050000000000002
+          ]
+        },
+        {
+          "name": "Prop_1",
+          "mass_g": 2.0,
+          "cg_cad_mm": [
+            54.99999999999999,
+            55.0,
+            24.100000000000016
+          ]
+        },
+        {
+          "name": "Motor_2",
+          "mass_g": 8.5,
+          "cg_cad_mm": [
+            55.000000000000014,
+            -55.000000000000014,
+            14.050000000000002
+          ]
+        },
+        {
+          "name": "Prop_2",
+          "mass_g": 2.0,
+          "cg_cad_mm": [
+            55.0,
+            -55.0,
+            24.099999999999998
+          ]
+        },
+        {
+          "name": "Motor_3",
+          "mass_g": 8.5,
+          "cg_cad_mm": [
+            -54.99999999999999,
+            -55.000000000000014,
+            14.050000000000002
+          ]
+        },
+        {
+          "name": "Prop_3",
+          "mass_g": 2.0,
+          "cg_cad_mm": [
+            -54.99999999999998,
+            -54.999999999999986,
+            24.099999999999994
+          ]
+        },
+        {
+          "name": "Motor_4",
+          "mass_g": 8.5,
+          "cg_cad_mm": [
+            -55.000000000000014,
+            55.000000000000014,
+            14.050000000000002
+          ]
+        },
+        {
+          "name": "Prop_4",
+          "mass_g": 2.0,
+          "cg_cad_mm": [
+            -55.000000000000014,
+            55.0,
+            24.10000000000001
+          ]
+        },
+        {
+          "name": "Misc combined hardware",
+          "mass_g": 20.0,
+          "cg_cad_mm": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ],
+      "method": "Printed masses from exact B-rep volumes and placeholder solid densities; intrinsic inertia from the export tessellation. Hardware mass overrides. Prop uniform-disc inertia approximation. Misc mass distributed over a 30 x 30 x 10 mm central box. No slicer infill deduction.",
+      "simulation_mass_g": 302,
+      "simulation_J": [
+        0.000392,
+        0.000405,
+        0.000639
+      ],
+      "legacy_mass_g": 244.6763315902689,
+      "legacy_reference_note": "Comparison uses the captured legacy_mass_reference.json snapshot (244.68 g), obtained after external export changes. The initial project summary cited 234.38 g; its original mass_raw.json hash is no longer available, so that earlier model cannot be fully recomputed.",
+      "legacy_printed_g": 86.68,
+      "legacy_J_CG_kg_m2": [
+        0.0004060295555593992,
+        0.00044141916377550897,
+        0.0006754552513178065
+      ],
+      "printed_mass_change_vs_legacy_g": 16.15953865135201,
+      "all_up_change_vs_legacy_pct": 6.605954468922559,
+      "all_up_change_vs_simulation_pct": -13.62929183730065,
+      "J_change_vs_simulation_pct": [
+        19.156880600821925,
+        28.181377563783805,
+        26.438213159849198
+      ]
+    },
+    "legacy_preservation": [
+      {
+        "name": "BatteryPad_TPU.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\BatteryPad_TPU.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "BottomPlate_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\BottomPlate_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "CameraMount-Cradle_TPU.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\CameraMount-Cradle_TPU.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "Foot_TPU.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\Foot_TPU.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "Frame_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\Frame_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "mass_raw.json",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\mass_raw.json"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "PRINT_NOTES.md",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\PRINT_NOTES.md"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "PropGuard_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\PropGuard_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "CameraMount-Base_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\rev1\\CameraMount-Base_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "Frame_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\rev1\\Frame_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "PRINT_NOTES.md",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\rev1\\PRINT_NOTES.md"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "PropGuard_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\rev1\\PropGuard_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "TopCover_PETG.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\rev1\\TopCover_PETG.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "TestCoupon_PLA.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\TestCoupon_PLA.3mf"
+        ],
+        "baseline_found": true
+      },
+      {
+        "name": "TestCoupon-GuardPad_PLA.3mf",
+        "matching_paths": [
+          "C:\\cde1302\\CAD\\exports\\TestCoupon-GuardPad_PLA.3mf"
+        ],
+        "baseline_found": true
+      }
+    ],
+    "motor_screw_engagement_mm": 3.0
+  },
+  "summary": {
+    "pass": 216,
+    "fail": 0,
+    "indeterminate": 11
+  }
+}

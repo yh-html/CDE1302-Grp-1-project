@@ -1,0 +1,309 @@
+Build candidate_arch
+  0.1s, 1 solids, valid=True
+Build candidate_fork
+  0.4s, 1 solids, valid=True
+Build candidate_cage
+  0.8s, 1 solids, valid=True
+Build Frame
+  21.8s, 3 solids, valid=False
+Build Guard_1
+  2.5s, 1 solids, valid=True
+Build Guard_2
+  2.4s, 1 solids, valid=True
+Build Guard_3
+  2.2s, 1 solids, valid=True
+Build Guard_4
+  2.7s, 1 solids, valid=True
+Build BottomPlate
+  0.8s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  0.2s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Build candidate_arch
+  0.3s, 1 solids, valid=True
+Build candidate_fork
+  1.2s, 1 solids, valid=True
+Build candidate_cage
+  2.3s, 1 solids, valid=True
+Build Frame
+  27.8s, 3 solids, valid=False
+Build Guard_1
+  2.7s, 1 solids, valid=True
+Build Guard_2
+  2.7s, 1 solids, valid=True
+Build Guard_3
+  2.7s, 1 solids, valid=True
+Build Guard_4
+  2.7s, 1 solids, valid=True
+Build BottomPlate
+  0.9s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.2s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Build candidate_arch
+  0.1s, 1 solids, valid=True
+Build candidate_fork
+  1.0s, 1 solids, valid=True
+Build candidate_cage
+  3.4s, 1 solids, valid=True
+Build Frame
+  32.4s, 1 solids, valid=True
+Build Guard_1
+  2.6s, 1 solids, valid=True
+Build Guard_2
+  2.6s, 1 solids, valid=True
+Build Guard_3
+  2.6s, 1 solids, valid=True
+Build Guard_4
+  2.6s, 1 solids, valid=True
+Build BottomPlate
+  0.8s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.2s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+Validate prop and bell clearances
+Validate camera FOV and moving cradle at 3-degree intervals
+Build candidate_arch
+  2.6s, 1 solids, valid=True
+Build candidate_fork
+  17.2s, 1 solids, valid=True
+Build candidate_cage
+  29.0s, 1 solids, valid=True
+Build Frame
+  57.6s, 6 solids, valid=True
+Build Guard_1
+  2.6s, 1 solids, valid=True
+Build Guard_2
+  2.6s, 1 solids, valid=True
+Build Guard_3
+  2.8s, 1 solids, valid=True
+Build Guard_4
+  2.7s, 1 solids, valid=True
+Build BottomPlate
+  0.9s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.2s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+FAIL Frame_PETG/one_solid: 6
+FAIL Frame_PETG/mesh_components: 6
+FAIL Guard_1_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_1_PETG/mesh_components: 9
+FAIL Guard_2_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_2_PETG/mesh_components: 9
+FAIL Guard_3_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_3_PETG/mesh_components: 9
+FAIL Guard_4_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_4_PETG/mesh_components: 9
+Build candidate_arch
+  3.5s, 1 solids, valid=True
+Build candidate_fork
+  13.2s, 2 solids, valid=True
+Build candidate_cage
+  14.6s, 4 solids, valid=True
+Build Frame
+  30.9s, 10 solids, valid=True
+Build Guard_1
+  2.6s, 1 solids, valid=True
+Build Guard_2
+  2.6s, 1 solids, valid=True
+Build Guard_3
+  2.7s, 1 solids, valid=True
+Build Guard_4
+  2.6s, 1 solids, valid=True
+Build BottomPlate
+  0.8s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.2s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+FAIL Frame_PETG/one_solid: 10
+FAIL Frame_PETG/mesh_components: 10
+FAIL Guard_1_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_1_PETG/mesh_components: 9
+FAIL Guard_2_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_2_PETG/mesh_components: 9
+FAIL Guard_3_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_3_PETG/mesh_components: 9
+FAIL Guard_4_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Guard_4_PETG/mesh_components: 9
+Validate prop and bell clearances
+Build candidate_arch
+  0.4s, 1 solids, valid=True
+Build candidate_fork
+Build candidate_arch
+  0.4s, 1 solids, valid=True
+Build candidate_fork
+  3.5s, 1 solids, valid=True
+Build candidate_cage
+  6.0s, 1 solids, valid=True
+Build Frame
+  25.7s, 1 solids, valid=True
+Build Guard_1
+  3.4s, 1 solids, valid=True
+Build Guard_2
+  3.4s, 1 solids, valid=True
+Build Guard_3
+  3.4s, 1 solids, valid=True
+Build Guard_4
+  3.4s, 1 solids, valid=True
+Build BottomPlate
+  0.9s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.4s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+FAIL Frame_PETG/watertight: {'watertight': False, 'winding': True}
+FAIL Frame_PETG/mesh_components: 21
+Validate prop and bell clearances
+Validate camera FOV and moving cradle at 3-degree intervals
+FAIL camera_motion_prop_clearance: 4.032030119289059
+Validate assembly collisions with B-rep intersections
+FAIL assembly_collisions: [{'a': 'Frame_PETG', 'b': 'Standoff_1', 'volume_mm3': 2.6141066275311733}, {'a': 'Frame_PETG', 'b': 'Standoff_2', 'volume_mm3': 2.614108580365566}, {'a': 'Frame_PETG', 'b': 'Standoff_3', 'volume_mm3': 2.6141106568116674}, {'a': 'Frame_PETG', 'b': 'Standoff_4', 'volume_mm3': 2.6141103531035217}]
+Measure critical wall sections
+Compute mass, CG and inertias
+FAIL legacy_exports_untouched: 10
+Validation: {"pass": 208, "fail": 5, "indeterminate": 11}
+Build complete
+Build candidate_arch
+  0.3s, 1 solids, valid=True
+Build candidate_fork
+  2.4s, 1 solids, valid=True
+Build candidate_cage
+  4.8s, 1 solids, valid=True
+Build Frame
+  20.5s, 1 solids, valid=True
+Build Guard_1
+  3.4s, 1 solids, valid=True
+Build Guard_2
+  3.4s, 1 solids, valid=True
+Build Guard_3
+  3.5s, 1 solids, valid=True
+Build Guard_4
+  3.4s, 1 solids, valid=True
+Build BottomPlate
+  0.9s, 1 solids, valid=True
+Build BatteryPad
+  0.0s, 1 solids, valid=True
+Build CameraCradle
+  1.4s, 1 solids, valid=True
+Build Foot
+  0.0s, 1 solids, valid=True
+Export Frame_PETG
+Export Guard_1_PETG
+Export Guard_2_PETG
+Export Guard_3_PETG
+Export Guard_4_PETG
+Export BottomPlate_PETG
+Export BatteryPad_TPU
+Export CameraCradle_TPU
+Export Foot_1_TPU
+Export Foot_2_TPU
+Export Foot_3_TPU
+Export Foot_4_TPU
+Render assembly views
+Validate topology and printable meshes
+Validate prop and bell clearances
+Validate camera FOV and moving cradle at 3-degree intervals
+Validate assembly collisions with B-rep intersections
+Measure critical wall sections
+Compute mass, CG and inertias
+FAIL legacy_exports_untouched: 5
+Validation: {"pass": 212, "fail": 1, "indeterminate": 11}
+Build complete
