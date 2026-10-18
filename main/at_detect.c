@@ -241,13 +241,30 @@ void at_detect_task(void* pvParams)
     /* NULL: always detect on the camera buffer (the preview just slows). */
     uint8_t *frame_copy = heap_caps_malloc(AT_FRAME_COPY_BYTES,
                                            MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (frame_copy == NULL) {
+        ESP_LOGW(TAG, "No PSRAM for detector frame copy; detection remains "
+                      "enabled but preview may contend for camera buffers");
+    }
     camera_stream_start();
 
     // Create tag family object
     apriltag_family_t *tf = tag16h5_create();
+    if (tf == NULL) {
+        ESP_LOGE(TAG, "No memory for tag16h5 family; detector disabled");
+        free(frame_copy);
+        vTaskDelete(NULL);
+        return;
+    }
 
     // Create AprilTag detector object
     apriltag_detector_t *td = apriltag_detector_create();
+    if (td == NULL) {
+        ESP_LOGE(TAG, "No memory for AprilTag detector; detector disabled");
+        tag16h5_destroy(tf);
+        free(frame_copy);
+        vTaskDelete(NULL);
+        return;
+    }
 
     // Add tag family to the detector
     apriltag_detector_add_family(td, tf);

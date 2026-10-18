@@ -320,10 +320,17 @@ void camera_stream_start(void)
                    NULL, CAMERA_STREAM_TASK_PRIORITY, NULL,
                    CAMERA_STREAM_TASK_CORE,
                    MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) != pdPASS) {
-        ESP_LOGW(TAG, "Camera preview disabled: setup failed (errno %d)", errno);
+        ESP_LOGW(TAG, "Camera preview disabled: setup failed "
+                      "(image=%s packet=%s socket=%d errno=%d)",
+                 s_image ? "ok" : "no-PSRAM",
+                 s_packet ? "ok" : "no-PSRAM", s_sock, errno);
         if (s_sock >= 0) close(s_sock);
         free(s_image);
         free(s_packet);
+        s_sock = -1;
+        s_image = NULL;
+        s_packet = NULL;
+        s_active = false;
         return;
     }
     s_active = true;

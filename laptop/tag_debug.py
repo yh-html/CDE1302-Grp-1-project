@@ -48,6 +48,7 @@ import socket
 import sys
 import time
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 
 from protocol import AT_DEBUG_PORT, parse_at_debug, parse_telemetry
@@ -56,22 +57,68 @@ TELEM_PORT     = 5005
 LINK_TIMEOUT_S = 1.5    # no debug packet for this long → link down
 FRAME_STALL_S  = 2.5    # packets arrive but frame_ms frozen → camera stalled
 
-# Camera mount: pitched 45° nose-down, 2 cm ahead of centre
-CAM_PITCH_DEG    = 45.0
-CAM_FWD_OFFSET_M = 0.02
+# Camera-to-body geometry. Body axes are NED: +X forward, +Y right, +Z down.
+# CAM_PITCH_DEG is the one physical setting to change after selecting the
+# cradle detent; Astra has 30/45/60/75 degree nose-down detents (45 nominal).
+CAMERA_DETENTS_DEG = (30.0, 45.0, 60.0, 75.0)
+CAM_PITCH_DEG = 45.0
+
+# Astra nominal 45-degree lens position, rounded to millimetres. Source:
+# codex/drone_cad_v2/output/reports/validation.json (geometry digest
+# 2ad741..., CAD axes x-forward/z-up) and the accompanying README, Camera and
+# AprilTag: about 54 mm forward of frame centre and 20 mm below the frame
+# underside (about 34 mm below the FC/body origin). The CAD optical origin is
+# still a placeholder, so verify the assembled lens centre.
+CAM_FWD_OFFSET_M = 0.054
+CAM_DOWN_OFFSET_M = 0.034
+
+
+@dataclass(frozen=True)
+class CameraMount:
+    fwd_offset_m: float
+    right_offset_m: float
+    down_offset_m: float
+
+
+CAMERA_MOUNTS = {
+    "astra_under_nose": CameraMount(CAM_FWD_OFFSET_M, 0.0,
+                                     CAM_DOWN_OFFSET_M),
+    # ASSUMED: preserves the old 20 mm forward value for a switchable stock
+    # mount. TODO: replace both offsets after the stock frame/lens is measured.
+    "stock": CameraMount(0.020, 0.0, 0.0),
+}
+CAMERA_MOUNT_NAME = "astra_under_nose"
 
 # Firmware keeps a tag pose (telemetry tag_dist_m) only when reprojection
 # error < 0.5 (at_detect.c); no pose ever affects flight.
 POSE_ERR_LIMIT = 0.5
 
 
-def cam_to_body(tx: float, ty: float, tz: float) -> tuple:
-    """Camera-frame translation → body-frame (fwd, right, hdist).
-    The 45°-pitched camera transform, without the heading rotation."""
-    pitch = math.radians(CAM_PITCH_DEG)
-    fwd   = math.cos(pitch) * tz + math.sin(pitch) * ty + CAM_FWD_OFFSET_M
-    right = tx
-    return fwd, right, math.hypot(fwd, right)
+def cam_to_body(tx: float, ty: float, tz: float, *,
+                pitch_deg: float | None = None,
+                mount_name: str | None = None) -> tuple[float, float, float, float]:
+    """Camera translation -> body (forward, right, down, 3-D distance).
+
+    AprilTag camera axes are X-right, Y-image-down, Z-forward. A positive
+    mount pitch points camera +Z toward body +Z (down), so camera +Y tilts
+    toward body -X. Heading is intentionally not applied here.
+    """
+    pitch_deg = CAM_PITCH_DEG if pitch_deg is None else pitch_deg
+    mount_name = CAMERA_MOUNT_NAME if mount_name is None else mount_name
+    if pitch_deg not in CAMERA_DETENTS_DEG:
+        raise ValueError(f"pitch must be an Astra detent: {CAMERA_DETENTS_DEG}")
+    try:
+        mount = CAMERA_MOUNTS[mount_name]
+    except KeyError as exc:
+        raise ValueError(f"unknown camera mount: {mount_name}") from exc
+
+    pitch = math.radians(pitch_deg)
+    fwd = (math.cos(pitch) * tz - math.sin(pitch) * ty
+           + mount.fwd_offset_m)
+    right = tx + mount.right_offset_m
+    down = (math.sin(pitch) * tz + math.cos(pitch) * ty
+            + mount.down_offset_m)
+    return fwd, right, down, math.sqrt(fwd**2 + right**2 + down**2)
 
 
 def load_nav_tag_ids(path: Path) -> set:
@@ -174,14 +221,15 @@ class DroneView:
 
 def fmt_tag_row(det, nav_ids: set) -> str:
     """One display row for a quality-passing detection."""
-    fwd, right, hdist = cam_to_body(det.tx, det.ty, det.tz)
+    fwd, right, down, body_dist = cam_to_body(det.tx, det.ty, det.tz)
     label = C.paint(f"TAG {det.id:>2}", C.BOLD, C.GREEN)
     nav   = C.paint(" [nav]", C.CYAN) if det.id in nav_ids else ""
     err   = f"err {det.pose_err:.3f}"
     if det.pose_err >= POSE_ERR_LIMIT:
         err = C.paint(err + " HIGH", C.YELLOW)
     return (f"    {label}{nav}  fwd {fwd:+5.2f}m  right {right:+5.2f}m  "
-            f"dist {hdist:4.2f}m  range {det.range_m:4.2f}m  "
+            f"down {down:+5.2f}m  body {body_dist:4.2f}m  "
+            f"range {det.range_m:4.2f}m  "
             f"margin {det.margin:5.1f}  ham {det.hamming}  {err}")
 
 
@@ -335,11 +383,13 @@ class ChangeLogger:
                     print(f"{self._stamp(t)} drone {did}  no tag in view")
                 else:
                     for d in good:
-                        fwd, right, hdist = cam_to_body(d.tx, d.ty, d.tz)
+                        fwd, right, down, body_dist = cam_to_body(
+                            d.tx, d.ty, d.tz)
                         nav = " [nav]" if d.id in self.nav_ids else ""
                         print(f"{self._stamp(t)} drone {did}  TAG {d.id}{nav}  "
                               f"fwd {fwd:+.2f}m right {right:+.2f}m "
-                              f"dist {hdist:.2f}m  margin {d.margin:.1f} "
+                              f"down {down:+.2f}m body {body_dist:.2f}m  "
+                              f"margin {d.margin:.1f} "
                               f"ham {d.hamming} err {d.pose_err:.3f}")
 
 
@@ -377,6 +427,7 @@ def drain(sock, handler) -> None:
 
 
 def main() -> int:
+    global CAMERA_MOUNT_NAME, CAM_PITCH_DEG
     ap = argparse.ArgumentParser(
         description="Live AprilTag monitor (real-time detections from the "
                     "ESP32 debug stream on UDP :5008)")
@@ -391,6 +442,13 @@ def main() -> int:
     ap.add_argument("--config", type=Path,
                     default=Path(__file__).resolve().parent / "setup.yaml",
                     help="setup.yaml used to label [nav] tags")
+    ap.add_argument("--camera-mount", choices=sorted(CAMERA_MOUNTS),
+                    default=CAMERA_MOUNT_NAME,
+                    help="camera extrinsics (default: astra_under_nose; stock "
+                         "is ASSUMED pending measurement)")
+    ap.add_argument("--camera-pitch", type=float, choices=CAMERA_DETENTS_DEG,
+                    default=CAM_PITCH_DEG,
+                    help="physical Astra nose-down detent in degrees")
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--log", action="store_true",
                       help="Line-per-change log instead of the live screen")
@@ -398,6 +456,9 @@ def main() -> int:
                       help="Force the live screen even when not a TTY")
     ap.add_argument("--no-color", action="store_true", help="Disable colours")
     args = ap.parse_args()
+
+    CAMERA_MOUNT_NAME = args.camera_mount
+    CAM_PITCH_DEG = args.camera_pitch
 
     use_ui = args.ui or (not args.log and sys.stdout.isatty())
     C.enabled = use_ui and not args.no_color
