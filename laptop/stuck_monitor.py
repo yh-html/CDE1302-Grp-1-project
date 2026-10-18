@@ -81,6 +81,11 @@ class StuckMonitor:
 
         # Per-drone state
         self._last_pos:           dict[int, tuple[float, float]] = {}
+        # Position at the last time progress was recorded.  Progress is the
+        # distance from this anchor, not from the previous packet: at 10 Hz a
+        # drone flying 0.5 m/s moves 0.05 m per packet, far below
+        # progress_threshold_m, and would otherwise never count as moving.
+        self._anchor_pos:         dict[int, tuple[float, float]] = {}
         self._last_progress_time: dict[int, float]               = {}
         self._last_heading:       dict[int, float]               = {}
 
@@ -104,10 +109,12 @@ class StuckMonitor:
         """
         now = time.monotonic()
 
-        prev = self._last_pos.get(drone_id)
-        if prev is None:
+        anchor = self._anchor_pos.get(drone_id)
+        if anchor is None:
+            self._anchor_pos[drone_id] = (map_x, map_y)
             self._last_progress_time[drone_id] = now
-        elif math.hypot(map_x - prev[0], map_y - prev[1]) > self._progress_threshold_m:
+        elif math.hypot(map_x - anchor[0], map_y - anchor[1]) > self._progress_threshold_m:
+            self._anchor_pos[drone_id] = (map_x, map_y)
             self._last_progress_time[drone_id] = now
             self._stuck_drones.discard(drone_id)
 
@@ -180,6 +187,9 @@ class StuckMonitor:
         """
         self._stuck_drones.discard(drone_id)
         self._last_progress_time[drone_id] = time.monotonic()
+        pos = self._last_pos.get(drone_id)
+        if pos is not None:
+            self._anchor_pos[drone_id] = pos
 
     def stuck_zones(self) -> list[tuple[float, float, float]]:
         """Return [(x, y, radius)] of active stuck zones, expiring stale ones."""

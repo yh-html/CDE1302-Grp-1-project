@@ -1,0 +1,65 @@
+# Configuration for laptop/run_tag_mission.py (CDE1302 mini-project).
+#
+# All distances in metres, in the drone's LOCAL frame: origin at the takeoff
+# point, x = North (forward at takeoff), y = East.  Values marked PLACEHOLDER or
+# ASSUMED must be replaced with measurements before the demonstration.
+
+# The examiner announces the boundaries and number of tags before the demo.
+# PLACEHOLDER: replace with the announced area, expressed relative to the start.
+search_area:
+  min_x: 0.0
+  max_x: 4.0
+  min_y: -2.0
+  max_y: 2.0
+
+sweep:
+  lane_spacing_m: 1.0     # ASSUMED. `run_tag_mission.py --plan-only` prints the camera-based maximum and a suggestion.
+  edge_margin_m: 0.3      # keep waypoints this far inside the boundary
+  lane_axis: x            # lanes run along x (forward); "y" runs them sideways
+
+# Where the camera sits on the drone and how it is tilted.  This sets the tag
+# localisation error (15% of the marks): measure it on the assembled drone.
+# PLACEHOLDER: these are the old Astra under-nose numbers from tag_debug.py;
+# the stock/stock_plus camera mount is NOT yet measured.
+camera:
+  pitch_deg: 45.0         # nose-down tilt of the optical axis (detent)
+  hfov_deg: 91.0          # field of view, firmware calibration (main/at_detect.c)
+  vfov_deg: 82.0
+  fwd_offset_m: 0.054     # lens forward of the drone body origin
+  right_offset_m: 0.0
+  down_offset_m: 0.034    # lens below the body origin
+
+detection:
+  max_pose_err: 0.5       # firmware pose reprojection error limit (at_detect.c)
+  max_range_m: 3.0        # ASSUMED. Ignore tags farther than this (poor depth accuracy)
+  min_view_elevation_deg: 30.0   # ASSUMED. Floor tags seen flatter than this will not decode/localise well
+  latency_s: 0.0          # ASSUMED. Delay between the camera frame and the packet; measure it
+  update_threshold_m: 0.2 # print TAG_UPDATED when the fused position moves more than this
+  # expected_tags: 3      # set to the announced tag count
+  stop_when_all_found: false   # true: return as soon as expected_tags are found
+
+mission:
+  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (waypoints/
+  # WAYPOINT_FLIGHT_TEST_GUIDE.md says about 0.2 m/s); the firmware's NAV_CRUISE_SPEED_MS is NOT
+  # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
+  cruise_speed_mps: 0.20
+  altitude_m: 0.5         # firmware CRUISE_ALT_M (main/main.c); used for the sweep planning and the sim
+  takeoff_wait_s: 12.0    # as in laptop/TEST_GUIDE.md
+  arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
+  min_leg_timeout_s: 15.0
+  max_mission_s: 600.0    # stop searching after this long, then return and land
+  geofence_margin_m: 0.5  # land if outside the search area plus this
+  stale_timeout_s: 3.0    # land if telemetry is older than this
+  connect_timeout_s: 30.0
+  land_wait_s: 8.0
+  max_consecutive_misses: 3
+  output_dir: mission_logs   # relative to laptop/
+
+# Used only with --simulate: tags on the floor, local frame.
+simulation:
+  noise_m: 0.02           # Gaussian noise on the camera-frame translation
+  takeoff_s: 8.0
+  tags:
+    1: [1.5, -1.0]
+    2: [2.5, 1.2]
+    3: [3.5, -0.4]

@@ -21,3 +21,38 @@ venv/
 
 # macOS
 .DS_Store
+laptop/mission_logs/
+
+# Local tool installs / personal material (not project code)
+envs/
+/DLLs/
+/Lib/
+/Library/
+/Scripts/
+/Menu/
+/Tools/
+/share/
+/shell/
+/conda-meta/
+/pkgs/
+/include/
+/libs/
+/man/
+/etc/
+/python*
+/*.dll
+/*.exe
+/*.pdb
+/*.bat
+/*.pyd
+/.condarc
+/.installer.info
+/.nonadmin
+/LICENSE_PYTHON.txt
+/Lecture Notes/
+/Labs/
+/Pictures/
+/Assignment/
+/CDE1302_UAV/
+/codex/*/output/
+mini_project/report/*.pdf
