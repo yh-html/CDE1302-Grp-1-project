@@ -1,0 +1,647 @@
+{
+ "schema": 1,
+ "units": "mm, g; geometry z up (motor stack on +z), flight report z down; Astra axes x forward, y right",
+ "sources": {
+  "measured": "../PROJECT_SUMMARY.md and ../../cde1302-chassis-draft-prompt.md, Krish 10 Oct 2026",
+  "legacy": "../../CAD/exports/PRINT_NOTES.md and mass_raw.json (read only)",
+  "design": "v3: tapered closed hollow-box arms (candidate A, criterion X), approved by Krish; engineering choices, not measurements"
+ },
+ "parameters": {
+  "arm_r": {
+   "value": 79.9031,
+   "status": "known",
+   "comment": "Computed from the supplied main_frame.stl: motor-hole centres are at (\u00c2\u00b156.5, \u00c2\u00b156.5), giving diagonal radius 79.9031 mm. In stock coordinates these are x/y; Astra retains x-forward/y-right."
+  },
+  "motor_side": {
+   "value": 113.0,
+   "status": "known",
+   "comment": "Computed from the supplied main_frame.stl motor-pad centres (\u00c2\u00b156.5, \u00c2\u00b156.5): adjacent centre spacing is 113.0 mm."
+  },
+  "frame_t": {
+   "value": 3.0,
+   "status": "known",
+   "comment": "Supplied main_frame.stl shows 3.0 mm base/pad layer at motor seats; 9.0 mm is overall frame bounding height, not motor-pad thickness."
+  },
+  "motor_pad_d": {
+   "value": 20.0,
+   "status": "known",
+   "comment": "Supplied main_frame.stl motor mounting pad is \u00c3\u02dc20.0 mm."
+  },
+  "motor_hole_spacing": {
+   "value": 12.0,
+   "status": "known",
+   "comment": "Supplied main_frame.stl and prop_guard(x4).stl have four motor holes on a cardinal pattern at radius 6.0 mm (12.0 mm opposite span), not square-corner coordinates."
+  },
+  "motor_hole_layout": {
+   "value": "cardinal",
+   "status": "known",
+   "comment": "Supplied main_frame.stl and prop_guard(x4).stl: hole centres at (\u00c2\u00b16,0),(0,\u00c2\u00b16) relative to each motor. Source files in Actual Mod STL of drone frame."
+  },
+  "motor_slot_d": {
+   "value": 2.3,
+   "status": "design",
+   "comment": "M2 print clearance; calibrate coupon."
+  },
+  "motor_slot_travel": {
+   "value": 0.0,
+   "status": "design",
+   "comment": "v3: round D2.3 holes; the 1 mm slot travel is dropped (it costs pad strength; stock STLs have plain holes)."
+  },
+  "motor_center_hole_d": {
+   "value": 8.0,
+   "status": "known",
+   "comment": "Supplied main_frame.stl motor-seat centre clearance measures \u00c3\u02dc8.0 mm."
+  },
+  "motor_bell_d": {
+   "value": 19.4,
+   "status": "measured"
+  },
+  "motor_h": {
+   "value": 14.1,
+   "status": "measured"
+  },
+  "motor_shaft_d": {
+   "value": 1.5,
+   "status": "measured"
+  },
+  "motor_shaft_h": {
+   "value": 4.0,
+   "status": "measured"
+  },
+  "motor_safe_depth": {
+   "value": null,
+   "status": "unknown",
+   "comment": "Measure safe thread depth before energizing. M2x10 has nominal 3 mm engagement; do not use longer unverified screws."
+  },
+  "motor_screw_length": {
+   "value": 10.0,
+   "status": "legacy"
+  },
+  "prop_d": {
+   "value": 76.2,
+   "status": "measured"
+  },
+  "prop_plane_above_bell": {
+   "value": 3.0,
+   "status": "placeholder",
+   "range": [
+    2.0,
+    4.0
+   ],
+   "comment": "Legacy prop center 24.1; verify hub seating with actual motor/prop."
+  },
+  "prop_envelope_t": {
+   "value": 2.0,
+   "status": "placeholder",
+   "range": [
+    2.0,
+    6.0
+   ],
+   "comment": "Rotating blade thickness/axial sweep unknown; check full swept envelope physically."
+  },
+  "prop_clearance": {
+   "value": 4.0,
+   "status": "requirement"
+  },
+  "guard_pad_t": {
+   "value": 3.0,
+   "status": "known",
+   "comment": "Supplied prop_guard(x4).stl motor-seat pad is 3.0 mm thick."
+  },
+  "guard_pad_d": {
+   "value": 20.0,
+   "status": "known",
+   "comment": "Supplied prop_guard(x4).stl motor-seat pad is \u00c3\u02dc20.0 mm. There are no separate locating pin holes."
+  },
+  "guard_od": {
+   "value": 92.0,
+   "status": "known",
+   "comment": "Supplied prop_guard(x4).stl ring outer diameter is 92.0 mm at the cylindrical band; top chamfer/rib tips are excluded."
+  },
+  "guard_wall": {
+   "value": 1.68,
+   "status": "design",
+   "comment": "v3: lighter ring (stock 3.0). Prop-tip gap = 6.2 mm."
+  },
+  "guard_top_z": {
+   "value": 26.1,
+   "status": "placeholder",
+   "comment": "v3 ring top (stock 28 mm is not an interface dimension)."
+  },
+  "guard_ring_bottom_z": {
+   "value": 20.1,
+   "status": "placeholder",
+   "comment": "v3 band height 6.0 mm (v2: 8.9) centred on the assumed prop plane z 23.1; check prop plane height before use."
+  },
+  "guard_half_sweep_deg": {
+   "value": 120.0,
+   "status": "design",
+   "comment": "240-degree C, 120-degree opening toward body."
+  },
+  "guard_spoke_d": {
+   "value": 2.8,
+   "status": "design"
+  },
+  "guard_spoke_w": {
+   "value": 2.8,
+   "status": "design",
+   "comment": "v3: slimmer keel spokes (v2 rev B 3.2); break-test with FitCoupon_GuardSpoke."
+  },
+  "guard_spoke_h": {
+   "value": 4.5,
+   "status": "design"
+  },
+  "guard_spoke_angles_deg": {
+   "value": [
+    -115.0,
+    -57.5,
+    0.0,
+    57.5,
+    115.0
+   ],
+   "status": "design",
+   "comment": "v2 rev B: five independent spokes replace three Y-forks (the printed guards broke at the forks). The end spokes sit 5 deg inside the C ends, so the ring has no long free ends."
+  },
+  "guard_keel_deg": {
+   "value": 50.0,
+   "status": "design",
+   "comment": "v2 rev B: keel faces 50 deg from horizontal: self-supporting when printed pad-down at any spoke slope."
+  },
+  "guard_rib_t": {
+   "value": 1.68,
+   "status": "design"
+  },
+  "guard_lip": {
+   "value": 1.0,
+   "status": "design"
+  },
+  "guard_collar_h": {
+   "value": 1.5,
+   "status": "design",
+   "comment": "v2 rev B: collar on the motor side of the guard pad, outside the bell keep-out, deepening the spoke roots. Pad stays 2 mm so motor screw engagement is unchanged."
+  },
+  "guard_spoke_clearance": {
+   "value": 3.0,
+   "status": "requirement"
+  },
+  "bell_spoke_clearance": {
+   "value": 1.5,
+   "status": "requirement"
+  },
+  "guard_gap": {
+   "value": 10.0,
+   "status": "requirement"
+  },
+  "key_pin_d": {
+   "value": 2.4,
+   "status": "placeholder",
+   "comment": "Not present in supplied prop_guard(x4).stl interface; set aside until a keyed interface is justified and fit-tested."
+  },
+  "key_hole_d": {
+   "value": 2.8,
+   "status": "placeholder",
+   "comment": "Stock prop_guard has no locating pin holes; no Astra key holes used for stock-compatible guard interface."
+  },
+  "key_pin_h": {
+   "value": 1.5,
+   "status": "placeholder",
+   "comment": "Stock prop_guard has no locating pin interface."
+  },
+  "key_offset": {
+   "value": 10.6,
+   "status": "placeholder",
+   "comment": "Stock prop_guard has no locating pin interface."
+  },
+  "root_chord_d": {
+   "value": 6.0,
+   "status": "design"
+  },
+  "tip_chord_d": {
+   "value": 4.4,
+   "status": "design"
+  },
+  "web_d": {
+   "value": 3.8,
+   "status": "design"
+  },
+  "tie_d": {
+   "value": 3.2,
+   "status": "design"
+  },
+  "arm_splay": {
+   "value": 3.2,
+   "status": "design"
+  },
+  "arm_lower_sag": {
+   "value": 0.0,
+   "status": "design",
+   "comment": "v2: 0 = lower chords flat on the bed. Astra 01 sagged 4-6 mm below the pads, leaving the motor-screw seats printed on supports."
+  },
+  "body_bolt_half": {
+   "value": 21.4,
+   "status": "placeholder",
+   "comment": "The square legacy pattern is retained only as the integrated-body leg geometry. Stock bottom-panel mounting uses the separate measured rectangular pattern below."
+  },
+  "bottom_mount_points": {
+   "value": [
+    [
+     -40,
+     -12
+    ],
+    [
+     -40,
+     12
+    ],
+    [
+     40,
+     -12
+    ],
+    [
+     40,
+     12
+    ]
+   ],
+   "status": "known",
+   "comment": "Supplied main_frame.stl and bottom_panel.stl share four mounting holes at stock coordinates (\u00c2\u00b112,\u00c2\u00b140); rotated into Astra x-forward/y-right axes (+Y stock is forward)."
+  },
+  "body_bolt_d": {
+   "value": 2.9,
+   "status": "design",
+   "comment": "M2.5 nominal clearance-hole allowance for Astra's integrated leg hardware; thread and fastener fit are not proven by the supplied STLs."
+  },
+  "bottom_frame_hole_d": {
+   "value": 2.8,
+   "status": "known",
+   "comment": "Supplied main_frame.stl four bottom-panel mounting holes measure \u00c3\u02dc2.800 mm."
+  },
+  "bottom_panel_hole_d": {
+   "value": 2.75,
+   "status": "known",
+   "comment": "Supplied bottom_panel.stl matching mounting holes measure \u00c3\u02dc2.750 mm."
+  },
+  "body_leg_d": {
+   "value": 8.0,
+   "status": "design"
+  },
+  "deck_outer": {
+   "value": 48.0,
+   "status": "design"
+  },
+  "deck_opening": {
+   "value": 38.0,
+   "status": "design"
+  },
+  "deck_bottom_z": {
+   "value": 29.0,
+   "status": "design"
+  },
+  "deck_t": {
+   "value": 3.2,
+   "status": "design"
+  },
+  "fc_hole_spacing": {
+   "value": 25.5,
+   "status": "known",
+   "comment": "Supplied main_frame.stl FC hole centres have 25.5 mm square side length; pattern is rotated 45\u00c2\u00b0 relative to the stock XY axes."
+  },
+  "fc_hole_rotation_deg": {
+   "value": 45.0,
+   "status": "known",
+   "comment": "Computed from supplied main_frame.stl FC holes at (\u00c2\u00b118.031,0),(0,\u00c2\u00b118.031), equivalent to a 25.5 mm square rotated 45\u00c2\u00b0."
+  },
+  "fc_hole_d": {
+   "value": 2.3,
+   "status": "known",
+   "comment": "Supplied main_frame.stl FC holes measure \u00c3\u02dc2.300 mm."
+  },
+  "fc_isolator_h": {
+   "value": 5.0,
+   "status": "measured"
+  },
+  "fc_size": {
+   "value": [
+    36.0,
+    36.0,
+    8.0
+   ],
+   "status": "placeholder",
+   "range": "up to 37 x 37 x 15 through deck",
+   "comment": "Legacy 36 x 36 board envelope, 8 mm component height."
+  },
+  "usb_size": {
+   "value": [
+    15.0,
+    12.0,
+    8.0
+   ],
+   "status": "placeholder",
+   "comment": "Side +y cable/tool corridor, verify actual connector side."
+  },
+  "batt_size": {
+   "value": [
+    58.0,
+    30.0,
+    22.0
+   ],
+   "status": "measured"
+  },
+  "plate_size": {
+   "value": [
+    66.0,
+    44.0,
+    1.68
+   ],
+   "status": "design",
+   "comment": "v3: 4 lines thick (min_wall 1.6). Plate top stays at z -30."
+  },
+  "plate_bottom_z": {
+   "value": -31.68,
+   "status": "design",
+   "comment": "Plate top stays at z -30 as in v2."
+  },
+  "battery_pad_t": {
+   "value": 1.6,
+   "status": "design",
+   "comment": "Meets minimum 1.6 mm wall."
+  },
+  "strap_w": {
+   "value": 12.0,
+   "status": "placeholder",
+   "range": [
+    10,
+    15
+   ],
+   "comment": "Actual Velcro unknown; slots sized from width plus 1 mm."
+  },
+  "strap_t": {
+   "value": 2.0,
+   "status": "placeholder",
+   "range": [
+    1.0,
+    2.5
+   ],
+   "comment": "Actual compressed strap unknown; 0.6 mm clearance added."
+  },
+  "foot_od": {
+   "value": 12.0,
+   "status": "legacy"
+  },
+  "foot_h": {
+   "value": 14.0,
+   "status": "design"
+  },
+  "foot_wall": {
+   "value": 2.0,
+   "status": "design"
+  },
+  "flow_size": {
+   "value": [
+    22.0,
+    16.0,
+    6.0
+   ],
+   "status": "placeholder",
+   "comment": "Tape nest envelope; verify complete MTF-02P, connector and lens offsets."
+  },
+  "flow_hole_spacing": {
+   "value": null,
+   "status": "unknown",
+   "comment": "No guessed holes: foam-tape nest plus retention strap slots."
+  },
+  "flow_x": {
+   "value": -8.0,
+   "status": "design"
+  },
+  "flow_recess": {
+   "value": 0.0,
+   "status": "design",
+   "comment": "v3: no recess (plate is only 1.68 mm); MTF-02P is taped under the window, its top face on the plate underside. Verify the real board and connector offsets."
+  },
+  "flow_fov": {
+   "value": 42.0,
+   "status": "measured"
+  },
+  "flow_lens_d": {
+   "value": 8.0,
+   "status": "placeholder",
+   "range": [
+    6,
+    10
+   ],
+   "comment": "Cone starts at lower face of assumed optical envelope."
+  },
+  "elrs_size": {
+   "value": [
+    20.0,
+    12.0,
+    4.0
+   ],
+   "status": "placeholder",
+   "range": "16-24 x 10-16 x 3-6; regenerate after measurement",
+   "comment": "Unknown receiver; open pocket, zip ties, rear antenna notch."
+  },
+  "elrs_mass": {
+   "value": 1.5,
+   "status": "placeholder"
+  },
+  "camera_size": {
+   "value": [
+    8.0,
+    23.0,
+    24.0
+   ],
+   "status": "placeholder",
+   "comment": "Combined XIAO, headers/heatsink envelope; local x depth, y width, z height."
+  },
+  "camera_mount": {
+   "value": "under_nose",
+   "status": "design",
+   "comment": "v2: 'under_nose' = cheeks rise from the bottom plate's front corners and the camera hangs below the frame, so nothing of the drone is in view at 30-75 deg. 'top' = Astra 01's frame cheeks from the deck corners; then use camera_pivot (38,0,41), where the front guards and props block ~18% of the image at 45 deg."
+  },
+  "camera_pivot": {
+   "value": [
+    64.38,
+    0.0,
+    -16.0
+   ],
+   "status": "design",
+   "comment": "Astra x coordinate matches the measured camera-pivot boss axis at stock panel +Y=64.38 mm after the axis rotation. Astra y/z and swept envelope remain design assumptions; the stock camera assembly transform is not present in the STL set."
+  },
+  "camera_cradle_wall": {
+   "value": 2.4,
+   "status": "design"
+  },
+  "camera_pivot_d": {
+   "value": 3.3,
+   "status": "design"
+  },
+  "camera_tilt": {
+   "value": 45.0,
+   "status": "legacy"
+  },
+  "camera_tilt_min": {
+   "value": 30.0,
+   "status": "requirement"
+  },
+  "camera_tilt_max": {
+   "value": 75.0,
+   "status": "requirement"
+  },
+  "camera_hfov": {
+   "value": 91.0,
+   "status": "derived",
+   "comment": "v2: from the firmware calibration main/at_detect.c (QVGA 320x240, F_X 163.50, C_X 154.01): edges 43.3/45.4 deg -> conservative symmetric 2 x 45.4 = 90.8 deg."
+  },
+  "camera_vfov": {
+   "value": 82.0,
+   "status": "derived",
+   "comment": "v2: from main/at_detect.c (F_Y 153.22, C_Y 107.10): edges 34.9/41.0 deg -> conservative symmetric 2 x 41.0 = 82 deg."
+  },
+  "camera_lens_x": {
+   "value": 6.0,
+   "status": "placeholder",
+   "comment": "Local lens protrusion ahead of board envelope."
+  },
+  "camera_hood_margin": {
+   "value": 1.5,
+   "status": "design",
+   "comment": "v2: TPU hood lip ahead of the lens tip; hood edges sit 64-83 deg off-axis, outside the field of view."
+  },
+  "min_wall": {
+   "value": 1.6,
+   "status": "requirement"
+  },
+  "petg_density": {
+   "value": 1.27,
+   "status": "placeholder",
+   "range": [
+    1.2,
+    1.3
+   ],
+   "comment": "g/cm3; use spool density and weigh print."
+  },
+  "tpu_density": {
+   "value": 1.21,
+   "status": "placeholder",
+   "range": [
+    1.1,
+    1.25
+   ],
+   "comment": "g/cm3; use spool density and weigh print."
+  },
+  "motor_mass": {
+   "value": 8.5,
+   "status": "placeholder",
+   "comment": "Each, legacy estimate."
+  },
+  "prop_mass": {
+   "value": 2.0,
+   "status": "placeholder",
+   "comment": "Each, legacy estimate; inertia approximated by disc."
+  },
+  "battery_mass": {
+   "value": 76.0,
+   "status": "measured",
+   "comment": "Listing approx +/-5 g, not individually weighed."
+  },
+  "fc_mass": {
+   "value": 10.0,
+   "status": "measured",
+   "comment": "Supplied project value."
+  },
+  "camera_mass": {
+   "value": 7.0,
+   "status": "placeholder"
+  },
+  "flow_mass": {
+   "value": 1.5,
+   "status": "measured",
+   "comment": "Supplied project value."
+  },
+  "misc_mass": {
+   "value": 20.0,
+   "status": "placeholder",
+   "comment": "Fasteners, standoffs, isolators, wiring, strap, adhesives combined; modeled CG (0,0,0)."
+  },
+  "Ct": {
+   "value": 2.9625e-07,
+   "status": "simulation"
+  },
+  "omega_max": {
+   "value": 3232.0,
+   "status": "simulation"
+  },
+  "gravity": {
+   "value": 9.81,
+   "status": "simulation"
+  },
+  "mesh_tolerance": {
+   "value": 0.06,
+   "status": "design"
+  },
+  "mesh_angle": {
+   "value": 0.15,
+   "status": "design"
+  },
+  "arm_w_root": {
+   "value": 12.0,
+   "status": "design",
+   "comment": "v3 candidate A at criterion X: box width at the diamond ring."
+  },
+  "arm_w_tip": {
+   "value": 6.0,
+   "status": "design"
+  },
+  "arm_d_root": {
+   "value": 9.0,
+   "status": "design",
+   "comment": "Depth cap 9 mm (stock envelope). PLACEHOLDER: real limit is FC/battery clearance below the frame, unknown."
+  },
+  "arm_d_tip": {
+   "value": 6.0,
+   "status": "design"
+  },
+  "arm_wall": {
+   "value": 1.68,
+   "status": "design",
+   "comment": "4 x 0.42 mm lines; min_wall 1.6 satisfied."
+  },
+  "arm_tip_stop": {
+   "value": 9.6,
+   "status": "design",
+   "comment": "Arm box ends this far from the motor centre, inside the D20 pad (r 10), so screw heads under the pad stay free."
+  },
+  "body_w": {
+   "value": 8.0,
+   "status": "design"
+  },
+  "body_d": {
+   "value": 8.0,
+   "status": "design"
+  },
+  "boss_od": {
+   "value": 7.0,
+   "status": "placeholder",
+   "comment": "FC and bottom-hole boss tube OD; height = body depth. Thread/screw engagement unverified."
+  },
+  "standoff_top_z": {
+   "value": -5.0,
+   "status": "placeholder",
+   "comment": "Standoffs run from the plate top (z -30) to the bottom of the body bosses (z -5): 25 mm. Real standoff length UNKNOWN."
+  },
+  "cheek_t": {
+   "value": 2.52,
+   "status": "design",
+   "comment": "v3 camera cheek web thickness (v2 3.2)."
+  },
+  "foot_x": {
+   "value": 40.0,
+   "status": "design",
+   "comment": "Feet sit under the four bottom-mount holes (+-40, +-12)."
+  },
+  "foot_y": {
+   "value": 12.0,
+   "status": "design"
+  }
+ }
+}
