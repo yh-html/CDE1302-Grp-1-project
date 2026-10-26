@@ -112,15 +112,63 @@ def bottom_plate(p):
         plate = plate.fuse(box((ex + 2, w, 3.0), (pr, yy, z + th + 1.5)))
     plate = plate.fuse(box((w, ey + 2 * w + .8, 3.0), (pr + ex / 2 + 1 + w / 2, 0, z + th + 1.5)))   # forward lip toward the battery
     # lightening windows: flow sensor window; battery windows (the pack rides on the TPU pad)
-    fx, fy, fh = p['flow_size']; xx = p['flow_x']; rec = p['flow_recess']
-    if rec > 0: plate = plate.cut(box((fx + .8, fy + .8, rec + .01), (xx, 0, z + rec / 2 - .005)))
-    plate = plate.cut(rounded_box((fx - 4, fy - 4, th + 2), (xx, 0, z + th / 2), 1.5))
-    for yy in [-fy / 2 - 3.1, fy / 2 + 3.1]: plate = plate.cut(box((6, 1.8, 8), (xx, yy, z)))
+    # v3.1: foam-tape nest removed. The sensor sits in FlowCover_TPU, whose four snap tabs pass through these slots.
+    for (sx_, sy_) in flow_slots(p): plate = plate.cut(box((p['flow_tab_len'] + .4, p['flow_cover_wall'] + .42, th + 2), (sx_, sy_, z + th / 2)))
     plate = plate.cut(rounded_box((25, 22, th + 2), (17.5, 0, z + th / 2), 3))    # front battery window
     plate = plate.cut(rounded_box((8, 22, th + 2), (-25.0, 0, z + th / 2), 3))  # rear battery window (ELRS side)
     plate = cheeks(p, plate)
     for (x, y) in pts: plate = plate.cut(cylinder(p['bottom_panel_hole_d'] / 2, th + 2, (x, y, z - 1)))
     return plate.clean()
+
+
+def flow_slots(p):
+    """plate slot centres for the FlowCover snap tabs"""
+    wy = p['flow_size'][1] / 2 + p['flow_cover_clear'] + p['flow_cover_wall'] / 2
+    return [(p['flow_x'] + sx * p['flow_tab_dx'], sy * wy) for sx in (-1, 1) for sy in (-1, 1)]
+
+
+def flow_cover(p):
+    """Sacrificial TPU cradle for the MTF-02P under the plate. Open at the bottom (so no wall can enter the optical cone),
+    1.68 mm walls, 3 mm skirt below the lens plane, four snap tabs through plate slots, two 45 deg retaining lips
+    under the long board edges, a rear cable notch. Printed skirt-down: no supports."""
+    fx, fy, fh = p['flow_size']; cl = p['flow_cover_clear']; w = p['flow_cover_wall']; x0 = p['flow_x']
+    ztp = p['plate_bottom_z']; zs = ztp - fh - p['flow_skirt_h']; H = ztp - zs
+    ix, iy = fx + 2 * cl, fy + 2 * cl; ox, oy = ix + 2 * w, iy + 2 * w
+    outer = rounded_box((ox, oy, H), (x0, 0, zs + H / 2), 2.0)
+    cav = box((ix, iy, H + 2), (x0, 0, zs + H / 2))
+    body = outer.cut(cav)
+    # lips: triangular, top flat at the board bottom plane, 45 deg underside back to the wall
+    lip = p['flow_lip']; zb = ztp - fh
+    prof = [(iy / 2 + .05, zb), (iy / 2 - lip, zb), (iy / 2 + .05, zb - lip - .05)]
+    for sgn in (-1, 1):
+        wp = cq.Workplane('YZ').polyline([(sgn * y_, z_) for y_, z_ in prof]).close().extrude(12.0).val().translate((x0 - 6.0, 0, 0))
+        body = body.fuse(wp)
+    # snap tabs: wall continues up through the plate slot; hook on the outside, 45 deg lead-in above, 45 deg latch below
+    th = p['plate_size'][2]; hk = p['flow_hook']
+    for (sx_, sy_) in flow_slots(p):
+        sg = 1 if sy_ > 0 else -1
+        tab = box((p['flow_tab_len'], w, th + 2 * hk), (sx_, sy_, ztp + (th + 2 * hk) / 2))
+        hook = (cq.Workplane('YZ').polyline([(sg * (w / 2 - .01) + sy_, ztp + th), (sg * (w / 2 + hk) + sy_, ztp + th + hk), (sg * (w / 2 - .01) + sy_, ztp + th + 2 * hk)]).close()
+                .extrude(p['flow_tab_len']).val().translate((sx_ - p['flow_tab_len'] / 2, 0, 0)))
+        body = body.fuse(tab).fuse(hook)
+    nw, nh = p['flow_notch']
+    body = body.cut(box((w + 2, nw, nh), (x0 - ox / 2, 0, ztp - nh / 2)))
+    return body.clean()
+
+
+def flow_cover_coupon(p):
+    """short test: a 14 mm slice of the cover (one long wall with lip + tab) - fit in the slot coupon"""
+    c = flow_cover(p); x0 = p['flow_x']; wy = p['flow_size'][1] / 2 + p['flow_cover_clear'] + p['flow_cover_wall'] / 2
+    keep = box((p['flow_tab_len'] + 6, 30, 40), (x0 + p['flow_tab_dx'], 0, p['plate_bottom_z']))
+    return c.intersect(keep).clean()
+
+
+def flow_slot_coupon(p):
+    th = p['plate_size'][2]; x0 = p['flow_x']
+    base = rounded_box((p['flow_tab_len'] + 10, 2 * (p['flow_size'][1] / 2 + p['flow_cover_clear'] + p['flow_cover_wall'] / 2) + 10, th), (x0 + p['flow_tab_dx'], 0, p['plate_bottom_z'] + th / 2), 2)
+    for (sx_, sy_) in flow_slots(p):
+        if sx_ > x0: base = base.cut(box((p['flow_tab_len'] + .4, p['flow_cover_wall'] + .42, th + 2), (sx_, sy_, p['plate_bottom_z'] + th / 2)))
+    return base.clean()
 
 
 def cheeks(p, plate):
@@ -147,7 +195,13 @@ def cheeks(p, plate):
     return plate.cut(cylinder(p['camera_pivot_d'] / 2, 60, (cp[0], -30, cp[2]), (0, 1, 0)))
 
 
-def battery_pad(p): return v2.battery_pad(p)
+def battery_pad(p):
+    pad = v2.battery_pad(p)
+    # pockets over the FlowCover snap hooks (hooks stand 1.4 mm above the plate top; the pad is 1.6 mm thick)
+    z = p['plate_bottom_z'] + p['plate_size'][2]
+    for (sx_, sy_) in flow_slots(p):
+        pad = pad.cut(box((p['flow_tab_len'] + 2, p['flow_cover_wall'] + 3.5, p['battery_pad_t'] + 1), (sx_, sy_ + (1.2 if sy_ > 0 else -1.2) * 0, z + p['battery_pad_t'] / 2)))
+    return pad
 
 
 def foot(p):
@@ -173,7 +227,7 @@ def envelopes(p):
     ex, ey, ez = p['elrs_size']
     out['ELRS'] = box(p['elrs_size'], (-42.5, 0, p['plate_bottom_z'] + p['plate_size'][2] + .2 + ez / 2))
     out['Camera'] = tilt(box(p['camera_size'], (0, 0, 0)), p)
-    out['MTF02P'] = box(p['flow_size'], (p['flow_x'], 0, p['plate_bottom_z'] + p['flow_recess'] - p['flow_size'][2] / 2))
+    out['MTF02P'] = box(p['flow_size'], (p['flow_x'], 0, p['plate_bottom_z'] - p['flow_size'][2] / 2))
     zt = p['plate_bottom_z'] + p['plate_size'][2]
     for i, (x, y) in enumerate([tuple(map(float, q)) for q in p['bottom_mount_points']], 1):
         L = p['standoff_top_z'] - zt
@@ -203,4 +257,6 @@ def fit_coupons(p):
     f['FitCoupon_Guard_PLA'] = holes_motor(cylinder(p['guard_pad_d'] / 2, p['guard_pad_t']), p, -1, 4).clean()
     f['FitCoupon_GuardSpoke_PETG'] = v2.guard_spoke_coupon(p)
     f['FitCoupon_ArmBox_PETG'] = arm_coupon(p)
+    f['FitCoupon_FlowCover_TPU'] = flow_cover_coupon(p)
+    f['FitCoupon_FlowSlot_PETG'] = flow_slot_coupon(p)
     return f

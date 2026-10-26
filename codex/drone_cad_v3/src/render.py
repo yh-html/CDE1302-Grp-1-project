@@ -25,7 +25,7 @@ def actor(mesh,c,alpha=1):
     a.GetProperty().SetSpecular(.22); a.GetProperty().SetSpecularPower(28)
     return a
 
-def render(meshes,path,title,view='iso',hardware=None,explode=False,diagnostics=None):
+def render(meshes,path,title,view='iso',hardware=None,explode=False,diagnostics=None,center=None,zoom=.94):
     ren=vtk.vtkRenderer(); ren.SetBackground(.94,.96,.97)
     window=vtk.vtkRenderWindow(); window.SetOffScreenRendering(1); window.SetSize(1600,1200); window.AddRenderer(ren)
     window.SetMultiSamples(4)
@@ -41,9 +41,9 @@ def render(meshes,path,title,view='iso',hardware=None,explode=False,diagnostics=
     if diagnostics:
         for name,m in diagnostics.items(): ren.AddActor(actor(m,(.85,.25,.50),.12))
     positions={'iso':(260,-330,240),'top':(0,0,500),'side':(0,-500,0),'front':(500,0,0),'underside':(240,-300,-260)}
-    cam=ren.GetActiveCamera(); cam.SetPosition(*positions.get(view,positions['iso'])); cam.SetFocalPoint(0,0,0)
+    cam=ren.GetActiveCamera(); cam.SetPosition(*[a+b for a,b in zip(positions.get(view,positions['iso']),(center or (0,0,0)))]); cam.SetFocalPoint(*(center or (0,0,0)))
     cam.SetViewUp(0,1,0) if view=='top' else cam.SetViewUp(0,0,1)
-    cam.ParallelProjectionOn(); ren.ResetCamera(); cam.Zoom(.94); ren.ResetCameraClippingRange()
+    cam.ParallelProjectionOn(); ren.ResetCamera(); cam.Zoom(zoom); ren.ResetCameraClippingRange()
     label=vtk.vtkTextActor(); label.SetInput(title+'\nCDE1302 / v3 frame   |   millimeters   |   prototype')
     label.SetPosition(36,1130); prop=label.GetTextProperty(); prop.SetColor(.12,.20,.25); prop.SetFontSize(24); prop.SetFontFamilyToArial(); ren.AddActor2D(label)
     foot=vtk.vtkTextActor(); foot.SetInput('x forward   y right   CAD z up    /    teal PETG frame   amber replaceable guards   charcoal TPU')

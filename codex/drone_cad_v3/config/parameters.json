@@ -119,19 +119,19 @@
    "comment": "Supplied prop_guard(x4).stl ring outer diameter is 92.0 mm at the cylindrical band; top chamfer/rib tips are excluded."
   },
   "guard_wall": {
-   "value": 1.68,
+   "value": 2.52,
    "status": "design",
-   "comment": "v3: lighter ring (stock 3.0). Prop-tip gap = 6.2 mm."
+   "comment": "rev E: 6 lines (6 x 0.42). The printed rev D ring (1.68 mm) broke when supports were removed. Prop-tip gap = 5.38 mm."
   },
   "guard_top_z": {
-   "value": 26.1,
+   "value": 27.1,
    "status": "placeholder",
-   "comment": "v3 ring top (stock 28 mm is not an interface dimension)."
+   "comment": "rev E band 8.0 mm (z 19.1-27.1), symmetric about the assumed prop plane z 23.1 (PLACEHOLDER)."
   },
   "guard_ring_bottom_z": {
-   "value": 20.1,
+   "value": 19.1,
    "status": "placeholder",
-   "comment": "v3 band height 6.0 mm (v2: 8.9) centred on the assumed prop plane z 23.1; check prop plane height before use."
+   "comment": "rev E band 8.0 mm, z 19.1-27.1."
   },
   "guard_half_sweep_deg": {
    "value": 120.0,
@@ -172,8 +172,9 @@
    "status": "design"
   },
   "guard_lip": {
-   "value": 1.0,
-   "status": "design"
+   "value": 1.4,
+   "status": "design",
+   "comment": "rev E: v2 rev B value restored (outward top lip, hoop stiffness)."
   },
   "guard_collar_h": {
    "value": 1.5,
@@ -396,39 +397,37 @@
   },
   "flow_size": {
    "value": [
-    22.0,
+    21.6,
     16.0,
-    6.0
+    6.5
    ],
-   "status": "placeholder",
-   "comment": "Tape nest envelope; verify complete MTF-02P, connector and lens offsets."
+   "status": "verified",
+   "comment": "MTF-02P 21.6 x 16 x 6.5 mm: micoair.com/?p=4526, rotorvillage.ca and rotorama.com product pages agree. Weight listed as 1.5 g (MicoAir, Rotorama) or 1.8 g (Rotor Village); 1.5 g kept."
   },
   "flow_hole_spacing": {
    "value": null,
    "status": "unknown",
-   "comment": "No guessed holes: foam-tape nest plus retention strap slots."
+   "comment": "No hole pattern was verifiable (MicoAir lists none; a related MTF-01P listing gives 24.3 x 12.0 mm / D2.5 but it is a different model). The cover therefore grips the board; no screws."
   },
   "flow_x": {
    "value": -8.0,
-   "status": "design"
+   "status": "design",
+   "comment": "Sensor centre x on the plate."
   },
   "flow_recess": {
    "value": 0.0,
    "status": "design",
-   "comment": "v3: no recess (plate is only 1.68 mm); MTF-02P is taped under the window, its top face on the plate underside. Verify the real board and connector offsets."
+   "comment": "No recess; board top face sits against the plate underside inside the cover."
   },
   "flow_fov": {
    "value": 42.0,
-   "status": "measured"
+   "status": "verified",
+   "comment": "MicoAir page: optical flow FOV 42 deg; working distance > 8 cm (lidar emit angle 2 deg)."
   },
   "flow_lens_d": {
    "value": 8.0,
    "status": "placeholder",
-   "range": [
-    6,
-    10
-   ],
-   "comment": "Cone starts at lower face of assumed optical envelope."
+   "comment": "Optical aperture diameter: NOT on the product page text. PLACEHOLDER."
   },
   "elrs_size": {
    "value": [
@@ -642,6 +641,92 @@
   "foot_y": {
    "value": 12.0,
    "status": "design"
+  },
+  "flow_lens_offset": {
+   "value": [
+    0.0,
+    0.0
+   ],
+   "status": "placeholder",
+   "comment": "Lens centre relative to the board centre (x,y). Only in the product-page images; PLACEHOLDER = centred. The cone check also reports the worst case for +-3 mm."
+  },
+  "flow_lens_offset_range": {
+   "value": 3.0,
+   "status": "placeholder",
+   "comment": "Worst-case lens position search range, mm."
+  },
+  "flow_connector_side": {
+   "value": "-x",
+   "status": "placeholder",
+   "comment": "Connector side/pinout only in the page images; the cover has a 10 mm cable notch in the rear (-x) wall as a PLACEHOLDER."
+  },
+  "flow_cover_clear": {
+   "value": 0.3,
+   "status": "design",
+   "comment": "Per-side cavity clearance around the board."
+  },
+  "flow_cover_wall": {
+   "value": 1.68,
+   "status": "design",
+   "comment": "4 x 0.42 mm lines (min_wall 1.6); 3 lines would be 1.26 mm and violate the 1.6 mm rule."
+  },
+  "flow_skirt_h": {
+   "value": 2.0,
+   "status": "design",
+   "comment": "Skirt below the board bottom (lens plane): lens recessed 2.0 mm behind the skirt. 3.0 mm failed the cone check when the lens is 3 mm off-centre (23.9 deg < 31 deg)."
+  },
+  "flow_lip": {
+   "value": 1.2,
+   "status": "design",
+   "comment": "Retaining lip overlap under the board edge (long sides), 45 deg underside."
+  },
+  "flow_tab_len": {
+   "value": 7.0,
+   "status": "design",
+   "comment": "Snap tab length; plate slots are 7.4 x 2.1 mm."
+  },
+  "flow_tab_dx": {
+   "value": 6.0,
+   "status": "design",
+   "comment": "Snap tabs at flow_x +- this."
+  },
+  "flow_cone_margin_deg": {
+   "value": 10.0,
+   "status": "requirement",
+   "comment": "Margin added to the half FOV (21 deg) -> keep out of 31 deg half-angle."
+  },
+  "flow_notch": {
+   "value": [
+    10.0,
+    4.5
+   ],
+   "status": "placeholder",
+   "comment": "Cable notch width x height in the rear wall."
+  },
+  "flow_hook": {
+   "value": 0.6,
+   "status": "design",
+   "comment": "Snap hook protrusion; 0.7 left only 0.2 mm to the battery bottom, 0.6 leaves 0.4 mm. Engagement over the plate = 0.6 - 0.21 slot clearance."
+  },
+  "guard_ring_land": {
+   "value": 0.0,
+   "status": "design",
+   "comment": "rev E: ring apex is a sharp edge (no flat land): no near-horizontal face anywhere; both faces beside it are 50 deg from horizontal."
+  },
+  "guard_ring_bevel_deg": {
+   "value": 50.0,
+   "status": "design",
+   "comment": "rev E: ring underside face angle from horizontal."
+  },
+  "guard_bead_w": {
+   "value": 0.8,
+   "status": "design",
+   "comment": "rev E inner top bead width (radial); prop-tip gap becomes 4.58 mm"
+  },
+  "guard_bead_h": {
+   "value": 1.5,
+   "status": "design",
+   "comment": "rev E inner bead height at the vertical face"
   }
  }
 }

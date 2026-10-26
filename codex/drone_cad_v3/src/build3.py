@@ -66,6 +66,16 @@ def bridge_area(mesh):
     return float(a[(n[:, 2] <= -0.99) & (zc > .25)].sum())
 
 
+def overhang_by_threshold(mesh, centre=None, rmin=None):
+    """downward-facing area (mm2) whose face is less than T degrees from horizontal, T = 30/40/45/50 (what a Bambu Studio
+    'threshold angle' of T would support); optionally only faces further than rmin from centre (xy). z > 0.25 mm."""
+    n = mesh.face_normals; a = mesh.area_faces; c = mesh.triangles_center
+    ang = np.degrees(np.arccos(np.clip(-n[:, 2], -1, 1)))          # 0 = flat underside, 90 = vertical
+    sel = (n[:, 2] < 0) & (c[:, 2] > mesh.bounds[0, 2] + .25)      # exclude the bed face (pad bottom)
+    if centre is not None: sel &= np.hypot(c[:, 0] - centre[0], c[:, 1] - centre[1]) >= rmin
+    return {str(T): round(float(a[sel & (ang < T - 0.3)].sum()), 1) for T in (30, 40, 45, 50, 55)}
+
+
 def box_inertia(m, sx, sy, sz): return np.diag([m * (sy ** 2 + sz ** 2) / 12, m * (sx ** 2 + sz ** 2) / 12, m * (sx ** 2 + sy ** 2) / 12])
 
 
@@ -80,6 +90,7 @@ def main():
         log(f'Build Guard_{i}'); g, _, _ = parts3.guard(p, a); shapes[f'Guard_{i}_PETG'] = g.translate((x, y, 0))
     log('Build plate'); shapes['BottomPlate_PETG'] = parts3.bottom_plate(p)
     shapes['BatteryPad_TPU'] = parts3.battery_pad(p)
+    shapes['FlowCover_TPU'] = parts3.flow_cover(p)
     cl = parts3.cradle(p); shapes['CameraCradle_TPU'] = tilt(cl, p)
     ft = parts3.foot(p)
     for i, (sx, sy) in enumerate([(sx, sy) for sx in (-1, 1) for sy in (-1, 1)], 1): shapes[f'Foot_{i}_TPU'] = ft.translate((sx * p['foot_x'], sy * p['foot_y'], 0))
@@ -122,6 +133,10 @@ def main():
         render(meshes, OUT / 'renders/clearance_side.png', 'v3 / side with envelopes', view='side', hardware=em)
         render({'Frame_PETG': meshes['Frame_PETG']}, OUT / 'renders/frame_detail.png', 'v3 frame / closed hollow-box arms')
         render({'Guard_1': meshes['Guard_1_PETG']}, OUT / 'renders/guard_detail.png', 'v3 guard / five keel spokes')
+        fc = (p['flow_x'], 0, p['plate_bottom_z'] - 6)
+        sub = {k: meshes[k] for k in ['FlowCover_TPU', 'BottomPlate_PETG'] + FOOT_NAMES}
+        render(sub, OUT / 'renders/flow_cover_underside.png', 'MTF-02P flow cover (TPU) / underside', 'underside', hardware={'MTF02P': em['MTF02P']}, center=fc, zoom=2.6)
+        render(sub, OUT / 'renders/flow_cover_side.png', 'MTF-02P flow cover (TPU) / side', 'side', hardware={'MTF02P': em['MTF02P']}, center=fc, zoom=2.6)
     except Exception as e:
         log('render failed: ' + repr(e))
     if not args.geometry_only:
@@ -169,7 +184,7 @@ def validate(p, data, shapes, meshes, prints, env, cl, coupons):
     ft_ = float(meshes['Frame_PETG'].bounds[1, 2]); gb_ = [float(meshes[n].bounds[0, 2]) for n in GUARD_NAMES]
     chk('stack_order', 'pass' if abs(ft_ - 3.0) < .01 and all(abs(b - 3.0) < .01 for b in gb_) else 'fail', dict(frame_top=round(ft_, 3), guard_bottoms=[round(b, 3) for b in gb_]), 'guard bottom = frame top = 3.0 (mesh bounds; B-rep bounding boxes are padded)')
     # ---- guard geometry ----
-    ring_id = p['guard_od'] - 2 * p['guard_wall']; tipgap = (ring_id - p['prop_d']) / 2
+    ring_id = p['guard_od'] - 2 * p['guard_wall'] - 2 * p['guard_bead_w']; tipgap = (ring_id - p['prop_d']) / 2
     chk('Guard/prop_tip_gap', 'pass' if tipgap >= 3 else 'fail', round(tipgap, 2), '>= 3 mm')
     centres = [(x, y) for x, y, a in motor_positions(p)]
     gaps = []
@@ -221,6 +236,39 @@ def validate(p, data, shapes, meshes, prints, env, cl, coupons):
     sup = {r['name']: r['support_area_mm2'] for r in rows}; details['support_area_mm2'] = sup
     brd = {r['name']: r['flat_bridge_area_mm2'] for r in rows}; details['flat_bridge_area_mm2'] = brd
     chk('overhang_report', 'pass', dict(sloped_overhang_mm2=sup, flat_bridges_mm2=brd), note='sloped = faces leaning past 45 deg from vertical; flat bridges = horizontal downward faces. Frame bridges are the cavity roofs, at most ~5.6 mm wide (12 mm root box: 8.64 mm inner width less two 1.5 mm chamfers); the outer roofs are 45 deg chamfers. Informational: the slicer decides.')
+    # ---- guard ring: section stiffness vs v2 rev B and v3 rev D, overhang thresholds ----
+    import parts as _gp
+    ro_ = p['guard_od'] / 2
+    revB = _gp.ring_section_props([(ro_ - 2.4, 19.1), (ro_, 19.1), (ro_, 28.0 - 1.4 * math.tan(math.radians(50))), (ro_ + 1.4, 28.0), (ro_ - 2.4, 28.0)])
+    revD = _gp.ring_section_props(_gp.ring_profile(ro_, 1.68, 20.1, 26.1, 1.0, 0.0, 63.4))
+    revE = _gp.ring_section_props(_gp.ring_profile(ro_, p['guard_wall'], p['guard_ring_bottom_z'], p['guard_top_z'], p['guard_lip'], p['guard_ring_land'], p['guard_ring_bevel_deg'], p['guard_bead_w'], p['guard_bead_h']))
+    rs = dict(rev_B_v2={k: round(float(v), 1) for k, v in revB.items()}, rev_D_v3_printed_and_broke={k: round(float(v), 1) for k, v in revD.items()}, rev_E={k: round(float(v), 1) for k, v in revE.items()},
+              E_over_B={k: round(float(revE[k] / revB[k]), 2) for k in revE}, E_over_D={k: round(float(revE[k] / revD[k]), 2) for k in revE},
+              note='A = area mm2, Iv = second moment for vertical bending (about the tangential axis), Ir = for radial bending (about the vertical axis), mm4; beam-section model of the ring cross-section, same E; midspan stiffness between spokes scales with I')
+    details['guard_ring_section'] = rs
+    chk('Guard/ring_radial_stiffness_vs_revB', 'pass' if rs['E_over_B']['Ir'] >= 1.0 else 'fail', rs['E_over_B'], 'radial Ir >= 1.0 x v2 rev B (the guards that survived support removal)', 'vertical Iv ratio is lower because the band is 8.0 mm vs 8.9 mm; reported, not gated')
+    gov = {}
+    for gname, (gx, gy, ga) in zip(GUARD_NAMES, motor_positions(p)):
+        gm = meshes[gname]
+        gov[gname] = dict(all=overhang_by_threshold(gm), ring_zone_r_ge_41=overhang_by_threshold(gm, (gx, gy), 41.0))
+    details['guard_overhang_mm2_by_threshold_deg'] = gov
+    conc = {}
+    for gname, (gx, gy, ga) in zip(GUARD_NAMES, motor_positions(p)):
+        V_ = meshes[gname].vertices; rr = np.hypot(V_[:, 0] - gx, V_[:, 1] - gy); zz = V_[:, 2]
+        loc = np.degrees(np.arctan2(V_[:, 1] - gy, V_[:, 0] - gx)) - ga          # angle in the guard's own frame (opening toward 180)
+        sel = (zz > 20.0) & (zz < 25.0) & (rr > 42.5) & (rr < 44.6)                    # mid band, below the inner bead
+        inner = [];
+        for a0 in range(-105, 106, 15):
+            s_ = sel & (np.abs(((loc - a0 + 180) % 360) - 180) < 10)
+            if s_.any(): inner.append(round(float(rr[s_].min()), 3))
+        bead = (zz > 25.0) & (rr > 40) & (rr < 44.6)
+        conc[gname] = dict(inner_radius_mid_band_min=min(v for v in inner if v), inner_radius_mid_band_max=max(v for v in inner if v),
+                           bead_inner_radius_min=round(float(rr[bead].min()), 3), prop_tip_gap_min=round(float(rr[bead].min()) - p['prop_d'] / 2, 3))
+    details['guard_ring_concentricity'] = conc
+    c1 = conc['Guard_1_PETG']; spread = max(max(v['inner_radius_mid_band_max'] - v['inner_radius_mid_band_min'] for v in conc.values()), 0)
+    chk('Guard/ring_concentric_with_pad', 'pass' if spread < 0.1 and min(v['prop_tip_gap_min'] for v in conc.values()) >= 4.0 else 'fail', conc, 'inner radius spread < 0.1 mm over 15 deg sectors, prop-tip gap >= 4 mm in every sector', 'measured on the assembly meshes about each motor centre; measuring about the bounding-box centre of a C-shaped print mesh gives a false 1 mm offset')
+    g1 = gov['Guard_1_PETG']
+    chk('Guard/overhang_report', 'pass', g1, 'informational: area a slicer threshold of T degrees would support; ring_zone = faces at r >= 41 mm from the motor (ring, lip, ribs)', 'the ring floats 16 mm above the pad plane between the spokes, so the first layers of every arc are over air: some support is unavoidable there (see PRINT_SHEET.md)')
     # ---- plan area under props ----
     ext = 130.0; res = .25; n = int(2 * ext / res); yy, xx = np.mgrid[0:n, 0:n]; X = xx * res - ext; Y = ext - yy * res
     disc = np.zeros((n, n), bool)
@@ -304,6 +352,44 @@ def validate(p, data, shapes, meshes, prints, env, cl, coupons):
     (kn, kt) = min(gaps_c, key=gaps_c.get)
     details['cradle_to_front_guard_min_gap_mm'] = dict(value=round(gaps_c[(kn, kt)], 3), guard=kn, tilt_deg=kt, per_tilt={str(t): round(min(v for (n_, t2), v in gaps_c.items() if t2 == t), 2) for t in range(30, 76, 3)})
     chk('camera_cradle_to_front_guard_gap', 'pass' if gaps_c[(kn, kt)] >= 3.0 else 'fail', details['cradle_to_front_guard_min_gap_mm'], '>= 3 mm (my threshold, not from the brief)', 'exact B-rep distance, cradle at 30-75 deg in 3 deg steps vs both front guards (C ends, spokes, ring)')
+    # ---- MTF-02P flow cover: optical cone clearance, landed heights, clearances ----
+    fh = p['flow_size'][2]; z_l = p['plate_bottom_z'] - fh; r_l = p['flow_lens_d'] / 2; ground = p['plate_bottom_z'] - p['foot_h']
+    pts_all = {}
+    for n_ in ['FlowCover_TPU', 'BottomPlate_PETG', 'CameraCradle_TPU'] + FOOT_NAMES + ['BatteryPad_TPU']:
+        m_ = meshes[n_]; samp = m_.sample(30000) if n_ in ('FlowCover_TPU', 'BottomPlate_PETG') else m_.sample(6000)
+        P = np.vstack([m_.vertices, samp]); pts_all[n_] = P[P[:, 2] < z_l - 1e-6]
+    def min_angle(lx, ly):
+        out = {}
+        for n_, P in pts_all.items():
+            if len(P) == 0: out[n_] = None; continue
+            h = z_l - P[:, 2]; dd = np.hypot(P[:, 0] - lx, P[:, 1] - ly)
+            ang = np.where(dd <= r_l, 0.0, np.degrees(np.arctan2(dd - r_l, h)))
+            out[n_] = round(float(ang.min()), 1)
+        return out
+    nominal = min_angle(p['flow_x'] + p['flow_lens_offset'][0], p['flow_lens_offset'][1])
+    rg = p['flow_lens_offset_range']; worst = {}
+    for dx in (-rg, 0, rg):
+        for dy in (-rg, 0, rg):
+            for n_, a_ in min_angle(p['flow_x'] + p['flow_lens_offset'][0] + dx, p['flow_lens_offset'][1] + dy).items():
+                if a_ is not None: worst[n_] = min(worst.get(n_, 999), a_)
+    need = p['flow_fov'] / 2 + p['flow_cone_margin_deg']
+    nom_min = min(v for v in nominal.values() if v is not None); worst_min = min(worst.values())
+    details['flow_cone_min_off_axis_deg'] = dict(required_half_angle=need, nominal_by_part=nominal, worst_case_lens_pm=rg, worst_case_by_part=worst, lens_plane_z=z_l, aperture_d_placeholder=p['flow_lens_d'])
+    chk('flow_cone_clearance_nominal', 'pass' if nom_min > need else 'fail', nominal, f'> {need:.0f} deg half-angle (21 deg + 10 deg margin) from the aperture edge', 'lens centre and aperture D are PLACEHOLDERS; points below the lens plane only; vertices + 30k surface samples')
+    chk('flow_cone_clearance_lens_pm3mm', 'pass' if worst_min > need else 'fail', worst, f'> {need:.0f} deg for any lens position within +-{rg} mm of the board centre (placeholder range)')
+    mb = float(meshes['FlowCover_TPU'].bounds[0, 2])
+    details['flow_heights_mm'] = dict(lens_to_ground_landed=round(z_l - ground, 2), skirt_bottom_above_ground=round(mb - ground, 2), lens_recess_behind_skirt=round(z_l - mb, 2), flow_working_distance_min_mm=80)
+    chk('flow_skirt_above_feet_ground_plane', 'pass' if mb - ground >= 3.0 else 'fail', round(mb - ground, 2), '>= 3 mm above the feet ground plane (z %.2f)' % ground)
+    chk('flow_lens_recessed_behind_skirt', 'pass' if z_l - mb >= 2.0 else 'fail', round(z_l - mb, 2), '>= 2.0 mm')
+    fcl = {'sensor to BottomPlate': exact_distance(env['MTF02P'], shapes['BottomPlate_PETG']), 'sensor to BatteryPad': exact_distance(env['MTF02P'], shapes['BatteryPad_TPU']),
+           'sensor to FlowCover': exact_distance(env['MTF02P'], shapes['FlowCover_TPU']), 'FlowCover to BatteryPad': exact_distance(shapes['FlowCover_TPU'], shapes['BatteryPad_TPU']),
+           'FlowCover to Battery': exact_distance(shapes['FlowCover_TPU'], env['Battery'])}
+    details['flow_clearances_mm'] = {k: round(v, 3) for k, v in fcl.items()}
+    chk('flow_sensor_to_plate_contact', 'pass' if fcl['sensor to BottomPlate'] < 0.01 else 'fail', round(fcl['sensor to BottomPlate'], 3), 'board top sits on the plate underside (0 mm by design)')
+    chk('flow_sensor_to_battery_pad', 'pass' if fcl['sensor to BatteryPad'] >= 1.5 else 'fail', round(fcl['sensor to BatteryPad'], 3), '>= 1.5 mm (the plate is between)')
+    chk('flow_cover_to_battery', 'pass' if fcl['FlowCover to Battery'] >= .3 else 'fail', round(fcl['FlowCover to Battery'], 3), '>= 0.3 mm (snap hooks stand in pad pockets)')
+    cm_ = shapes['FlowCover_TPU'].Volume() * p['tpu_density'] / 1000
+    chk('flow_cover_mass', 'pass' if cm_ <= 2.0 else 'fail', round(cm_, 3), '<= 2.0 g')
     # ---- mass / CG / inertia ----
     parts_m = []
     for n, s in shapes.items():
@@ -321,7 +407,7 @@ def validate(p, data, shapes, meshes, prints, env, cl, coupons):
     hw.append(('FC', p['fc_mass'], np.array([0, 0, TOP_Z + p['fc_isolator_h'] + p['fc_size'][2] / 2]), box_inertia(p['fc_mass'], *p['fc_size'])))
     cpos = np.array(p['camera_pivot'], float)
     hw.append(('Camera', p['camera_mass'], cpos, box_inertia(p['camera_mass'], *p['camera_size'])))
-    hw.append(('MTF02P', p['flow_mass'], np.array([p['flow_x'], 0, p['plate_bottom_z'] - 3]), box_inertia(p['flow_mass'], *p['flow_size'])))
+    hw.append(('MTF02P', p['flow_mass'], np.array([p['flow_x'], 0, p['plate_bottom_z'] - p['flow_size'][2] / 2]), box_inertia(p['flow_mass'], *p['flow_size'])))
     hw.append(('ELRS', p['elrs_mass'], np.array([-42.5, 0, p['plate_bottom_z'] + p['plate_size'][2] + 2.2]), box_inertia(p['elrs_mass'], *p['elrs_size'])))
     hw.append(('Misc', p['misc_mass'], np.array([0., 0, 0]), box_inertia(p['misc_mass'], 30, 30, 10)))
     allp = [(n, m, np.array(c), np.array(I)) for n, m, c, I in parts_m] + hw
@@ -372,7 +458,8 @@ def validate(p, data, shapes, meshes, prints, env, cl, coupons):
         ('fc_isolator_and_screw_length', 'FC sits ABOVE the frame on 5 mm isolators (v2 convention); stock_plus describes it hanging below. Verify which side, and the screw engagement in the 8 mm bosses.'),
         ('arm_depth_cap_9mm', 'Depth capped at the stock 9 mm envelope; the true limit is FC and battery clearance, unknown.'),
         ('guard_band_height', 'v3 band is 6.0 mm (v2 8.9) centred on the ASSUMED prop plane (z 23.1); verify the real prop height.'),
-        ('MTF_mount_holes', 'Unknown pitch; taped under the plate window, no recess in v3.'),
+        ('flow_sensor_lens_connector_holes', 'VERIFIED: 21.6 x 16 x 6.5 mm and 42 deg FOV (MicoAir, Rotor Village, Rotorama pages). NOT verifiable: lens position and aperture, connector side/pinout, mounting holes (page images only). The cover assumes a centred D8 lens, a rear cable notch and no holes; it grips the board (no screws). Measure the real board and re-run.'),
+        ('flow_cover_fit', 'FlowCover snap tabs (0.6 mm hooks, 0.21 mm slot clearance each side) and the 0.3 mm board clearance are untested; print FitCoupon_FlowCover_TPU against FitCoupon_FlowSlot_PETG first.'),
         ('ELRS_fit', '20 x 12 x 4 mm placeholder pocket on the rear tab.'),
         ('strap_fit', '12 x 2 mm placeholder strap.'),
         ('material_density', 'PETG 1.27 and TPU 1.21 g/cm3 placeholders; weigh the first print.'),
@@ -411,10 +498,25 @@ def write_reports(result, p):
     s = '# Print sheet - v3\n\n0.4 mm nozzle, 0.2 mm layers; wall counts are multiples of the 0.42 mm line (4 perimeters = 1.68 mm). Starting settings only; masses are solid CAD volume at placeholder densities (zero-infill thin-wall parts, so infill setting barely matters).\n\n| Part | Material | Print box mm | Volume cm3 | Mass g | Overhang >45 deg mm2 | Orientation | Settings |\n|---|---|---|---:|---:|---:|---|---|\n'
     for r in d['parts']:
         n = r['name']
-        o = 'Flat motor face on the bed (flipped from CAD)' if n.startswith('Frame') else 'Pad down' if n.startswith('Guard') else 'Back on the bed' if n.startswith('Camera') else 'Open end up' if n.startswith('Foot') else 'Flat'
-        st = '4 perimeters, 0-10% gyroid, 245 C, fan 40%; arm roofs are 45 deg chamfers (no supports expected)' if n.startswith('Frame') else '4-6 perimeters, ring and spokes are all wall; 245 C, fan 30-40%' if n.startswith('Guard') else '4 perimeters, 15% gyroid' if n.startswith(('Bottom')) else 'TPU 95A slow, 3 perimeters, 20% gyroid' if r['material'] == 'TPU' else ''
+        o = 'Skirt down, hooks up, as exported' if n.startswith('FlowCover') else 'Flat motor face on the bed (flipped from CAD)' if n.startswith('Frame') else 'Pad down' if n.startswith('Guard') else 'Back on the bed' if n.startswith('Camera') else 'Open end up' if n.startswith('Foot') else 'Flat'
+        st = 'TPU 95A, 0.2 mm layers, slow (20-25 mm/s), 4 perimeters (1.68 mm walls), 0% infill, fan 100%, no supports; 45 deg lip and hook faces; print FitCoupon_FlowCover_TPU first' if n.startswith('FlowCover') else '4 perimeters, 0-10% gyroid, 245 C, fan 40%; arm roofs are 45 deg chamfers (no supports expected)' if n.startswith('Frame') else '4-6 perimeters, ring and spokes are all wall; 245 C, fan 30-40%' if n.startswith('Guard') else '4 perimeters, 15% gyroid' if n.startswith(('Bottom')) else 'TPU 95A slow, 3 perimeters, 20% gyroid' if r['material'] == 'TPU' else ''
         s += f"| {n} | {r['material']} | {' x '.join(str(v) for v in r['print_bbox_mm'])} | {r['volume_mm3'] / 1000:.3f} | {r['mass_g']:.2f} | {r['support_area_mm2']} | {o} | {st} |\n"
-    s += '\nCoupons (print before the full set): `FitCoupon_Frame_PLA` (motor pad + FC hole pattern), `FitCoupon_Guard_PLA`, `FitCoupon_GuardSpoke_PETG` (break-test the spoke and ring joint by hand), `FitCoupon_ArmBox_PETG` (40 mm closed-box arm slice: crush/bend it to see wall bonding).\n'
+    s += '\nCoupons (print before the full set): `FitCoupon_Frame_PLA` (motor pad + FC hole pattern), `FitCoupon_Guard_PLA`, `FitCoupon_GuardSpoke_PETG` (break-test the spoke and ring joint by hand), `FitCoupon_ArmBox_PETG` (40 mm closed-box arm slice: crush/bend it to see wall bonding), `FitCoupon_FlowCover_TPU` (one wall of the flow cover with lip and snap tab) with `FitCoupon_FlowSlot_PETG` (matching plate slots): the tab must click in and out by hand.\n'
+    g1 = d['guard_overhang_mm2_by_threshold_deg']['Guard_1_PETG']; rs = d['guard_ring_section']
+    s += f"""
+## Guard (rev E) - read before printing
+
+**Print the ring-segment coupon first** (`FitCoupon_GuardSpoke_PETG`: pad, one spoke, a 90 degree arc of ring with the lip). Break it by hand: twist and pull the ring; compare with a v2 rev B guard if you still have one.
+
+Why rev E: the rev D ring (1.68 mm wall, 6 mm band) broke when its supports were removed. Rev E: 6-line wall 2.52 mm, 8.0 mm band (z 19.1-27.1), outward lip 1.4 mm (as v2 rev B), 0.8 x 1.5 mm inner bead, spoke joint reaching 1.8 mm into the ring, rib foot chamfered at 50 degrees. Ring section vs v2 rev B: radial bending {rs['E_over_B']['Ir']}x, vertical bending {rs['E_over_B']['Iv']}x, area {rs['E_over_B']['A']}x; vs the broken rev D: radial {rs['E_over_D']['Ir']}x, vertical {rs['E_over_D']['Iv']}x.
+
+Slicer: PETG, 0.2 mm layers, nozzle 245-250 C, bed 75 C, part fan 30-40 percent (higher fan makes the ring layers peel), walls **6** (the ring and spokes are all wall; infill does nothing), 100 percent top/bottom not needed, line width 0.42-0.45 mm, outer wall slow (about 40 mm/s), brim 3-5 mm on the pad. Print pad-down, as exported.
+
+**Supports (the honest answer):** the ring floats about 16 mm above the pad plane between the spokes, so the first layers of every arc are printed over air. Every ring, lip, bead and rib-foot face is 50 degrees or steeper from horizontal and the ring apex is a sharp edge (no flat land), so a threshold of 45 degrees or lower puts supports on nothing but the first layers under that apex line, and a threshold of 50 or more would load supports onto the 50 degree faces. Overhang area on one guard, by slicer threshold angle (T = 30 / 40 / 45 / 50 / 55 degrees; all guard, then ring zone r >= 41 mm only), mm2: {g1['all']} and {g1['ring_zone_r_ge_41']}. Faces between 45 and 50 degrees are the spoke keels on the tilted spokes (self-supporting by the 45 degree rule). **Unavoidable:** between the spokes (and under the two C-ends) the ring floats 16 mm above the pad, so the first layers of the apex are printed over air whatever the face angles; some support must sit under the apex line there, nowhere else.
+
+Bambu Studio: Support ON, type **tree (slim)** or normal (grid), threshold angle **30-40**, **on build plate only**, Top Z distance **0.25-0.3 mm** (or 'Thick bridges' off), support/object XY distance 0.5 mm, support interface 2 layers rectilinear, pattern spacing wide (3-4 mm) so the supports are few and light, **no supports on the spokes**: check the preview and paint-out (support blocker) anything touching the spokes or the pad. In the preview, supports must appear only as thin columns under the ring land between the spokes and under the two C-ends.
+Removing supports: cut or snap each column near the bed first, then peel the interface layer sideways along the ring; do not pull the ring away from the support radially. Let the guard cool fully first. If the coupon ring snaps while you remove supports, stop and increase the wall or band before printing four guards.
+"""
     (OUT / 'reports/PRINT_SHEET.md').write_text(s, encoding='utf-8')
 
 

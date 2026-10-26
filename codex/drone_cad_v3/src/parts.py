@@ -114,7 +114,7 @@ def ROOT_BLEND(p,zt,sw,sh,rt,ze,shift,z0,z1,ro):
     if key in _ROOT_CACHE: return _ROOT_CACHE[key]
     zf0=p['frame_t']; hw=sw/2
     def polar0(r,z): return (r,0.0,z)
-    sp=tube_keel([polar0(14.3,zt+.8),polar0(18,8.6),polar0(26,12.2),polar0(34,15.0),polar0(40,ze-2.3-shift),polar0(44,ze-.5-shift),polar0(ro+rt,ze)],sw,sh,p['guard_keel_deg'])
+    sp=tube_keel([polar0(14.3,zt+.8),polar0(18,8.6),polar0(26,12.2),polar0(34,15.0),polar0(40,z0-3.1),polar0(44,z0-1.3),polar0(ro+rt,ze)],sw,sh,p['guard_keel_deg'])
     sp=sp.intersect(box((24,20,40),(12,0,23)))      # root zone only (r <= 24); the full spoke is added by the caller
     foot=(cq.Workplane('XY').workplane(offset=zf0).polyline([(9.5,-2.8),(11.5,-2.8),(14.5,-2.4),(14.5,2.4),(11.5,2.8),(9.5,2.8)]).close().extrude(zt-zf0).val())
     web=(cq.Workplane('XZ').polyline([(9.5,zf0),(15.5,zf0),(17.4,zf0+2.0),(15.0,8.75),(14.0,8.26),(12.2,zt),(9.5,zt)]).close()
@@ -173,6 +173,24 @@ def ROOT_BLEND(p,zt,sw,sh,rt,ze,shift,z0,z1,ro):
     _ROOT_CACHE[key]=(piece,list(FILLET_LOG))
     return _ROOT_CACHE[key]
 
+def ring_profile(ro, t, z0, z1, lip, land=0.42, bevel=50.0, bead_w=0.0, bead_h=1.5):
+    """(r,z) outline of the C-ring: 50 deg faces down to a narrow land, outward lip whose underside is 50 deg."""
+    ri = ro - t; lz = lip * math.tan(math.radians(50)); hb = (t - land) / 2 * math.tan(math.radians(bevel))
+    pts = [(ri, z0 + hb), (ri + (t - land) / 2, z0)] + ([(ro - (t - land) / 2, z0)] if land > 1e-6 else []) + [(ro, z0 + hb), (ro, z1 - lz), (ro + lip, z1)]
+    if bead_w > 0:   # inner top bead, underside 50 deg
+        pts += [(ri - bead_w, z1), (ri - bead_w, z1 - bead_h), (ri, z1 - bead_h - bead_w * math.tan(math.radians(50)))]
+    else: pts += [(ri, z1)]
+    return pts
+
+def ring_section_props(pts):
+    """polygon area and second moments about its centroid: Iv (vertical bending, about the tangential axis) and Ir (radial bending, about the vertical axis)"""
+    import numpy as _np
+    P = _np.array(pts, float); x, y = P[:, 0], P[:, 1]; x1, y1 = _np.roll(x, -1), _np.roll(y, -1); c = x * y1 - x1 * y
+    A = c.sum() / 2; cx = ((x + x1) * c).sum() / (6 * A); cy = ((y + y1) * c).sum() / (6 * A)
+    Ixx = ((y * y + y * y1 + y1 * y1) * c).sum() / 12 - A * cy * cy
+    Iyy = ((x * x + x * x1 + x1 * x1) * c).sum() / 12 - A * cx * cx
+    return dict(A=abs(A), Iv=abs(Ixx), Ir=abs(Iyy))
+
 def guard(p,angle=0):
     """v2 rev B guard, after printed Y-fork guards broke at the forks and the spoke-to-ring
     joints. Five independent spokes (no forks); each passes under the band and climbs its
@@ -185,12 +203,12 @@ def guard(p,angle=0):
     # Band plus an outward lip on the top edge (hoop stiffness; prop-tip gap unchanged),
     # lip underside 50 deg from horizontal so it prints unsupported.
     lip=p['guard_lip']; lz=lip*math.tan(math.radians(50))
-    ring=(cq.Workplane('XZ').polyline([(ri,z0+1.26),(ri+.63,z0),(ro-.63,z0),(ro,z0+1.26),(ro,z1-lz),(ro+lip,z1),(ri,z1)]).close()
+    ring=(cq.Workplane('XZ').polyline(ring_profile(ro,p['guard_wall'],z0,z1,lip,p['guard_ring_land'],p['guard_ring_bevel_deg'],p['guard_bead_w'],p['guard_bead_h'])).close()
           .revolve(2*half,(0,0,0),(0,1,0)).val().rotate((0,0,0),(0,0,1),-half))
     # Round only the two open C ends (no snag points). Rounding every ring edge left slivers
     # where the ribs cross the lip's inside corner, and the mesh was no longer watertight.
     ends=[f for f in ring.Faces() if f.geomType()=='PLANE' and abs(f.normalAt().z)<.1]
-    for fr_ in (.5,.3,.2):
+    for fr_ in (.8,.6,.5,.3,.2):
         try: ring=ring.fillet(fr_,[e for f in ends for e in f.Edges()]); break
         except Exception: continue
     pad=cylinder(p['guard_pad_d']/2,p['guard_pad_t'],(0,0,p['frame_t']))
@@ -200,7 +218,7 @@ def guard(p,angle=0):
         pad=pad.fuse(cylinder(p['guard_pad_d']/2,p['guard_collar_h'],(0,0,zt)).cut(cylinder(rc,p['guard_collar_h']+1,(0,0,zt-.5))))
     pad=holes_motor(pad,p,p['frame_t']-1,p['guard_pad_t']+p['guard_collar_h']+2)
     sw,sh,rt=p['guard_spoke_w'],p['guard_spoke_h'],p['guard_rib_t']
-    ze=z0-sw/2+.6  # spoke end centre: its round top overlaps the band's lower edge by 0.6 mm
+    ze=z0+0.4   # rev E: spoke end centre; its round top reaches 1.8 mm into the ring (was 0.6) so the joint sits in the thick part
     each=[]; shift=z0-19.1
     for a in p['guard_spoke_angles_deg']:
         # Spine stays >= 5 mm under the prop disc inside the tip radius, then runs flat under
@@ -208,8 +226,8 @@ def guard(p,angle=0):
         # The stock-compatible Ø20 pad has a 10 mm radius, so each spoke must
         # overlap that pad at its top face instead of beginning outside it.
         sp=tube_keel([polar(14.3,a,p['frame_t']+p['guard_pad_t']+.8),polar(18,a,8.6),polar(26,a,12.2),polar(34,a,15.0),
-                      polar(40,a,ze-2.3-shift),polar(44,a,ze-.5-shift),polar(ro+rt,a,ze)],sw,sh,p['guard_keel_deg'])
-        rib=rounded_box((rt,sw,z1-ze),(ro+rt/2-.01,0,(z1+ze)/2),.5).rotate((0,0,0),(0,0,1),a)
+                      polar(40,a,z0-3.1),polar(44,a,z0-1.3),polar(ro+rt,a,ze)],sw,sh,p['guard_keel_deg'])
+        rib=(cq.Workplane('XZ').polyline([(ro-.4,ze),(ro,ze),(ro+rt,ze+rt*math.tan(math.radians(50))),(ro+rt,z1),(ro-.4,z1)]).close().extrude(sw).val().translate((0,sw/2,0))).rotate((0,0,0),(0,0,1),a)   # rev E: rib foot chamfered at 50 deg, no flat underside
         # Low radial bridge joins the 10 mm radius stock pad below the motor
         # base; the raised spoke clears the measured bell keep-out envelope.
         bridge=tube([polar(9.2,a,zt-1.1),polar(15.5,a,zt-1.1)],1.0)
@@ -221,11 +239,11 @@ def guard(p,angle=0):
     return union([pad,spokes,ring]),spokes,ring
 
 def guard_spoke_coupon(p):
-    """One spoke of the guard with its pad and a 44 deg piece of ring: a hand break-test of
-    the new joints before printing four guards. Print pad-down like the guard."""
+    """rev E ring-segment coupon: pad + the outboard spoke + a 90 deg arc of ring with the lip. Hand break-test the ring itself.
+    Print pad-down like the guard (the arc needs the same supports as the guard)."""
     g,_,_=guard(p,0)
-    wedge=cq.Workplane('XY').polyline([(0,0),(70*math.cos(math.radians(22)),-70*math.sin(math.radians(22))),
-                                       (70*math.cos(math.radians(22)),70*math.sin(math.radians(22)))]).close().extrude(40).val()
+    k=70*math.cos(math.radians(45))
+    wedge=cq.Workplane('XY').polyline([(0,0),(k,-k),(k,k)]).close().extrude(40).val()
     return g.intersect(union([wedge,cylinder(p['guard_pad_d']/2+.01,40,(0,0,0))])).clean()
 
 def bottom_plate(p):
