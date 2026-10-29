@@ -1,0 +1,143 @@
+{
+  "reference_duration_s": 127.71361079428405,
+  "mission_time_takeoff_to_landing_cmd_s": 123.94694412761739,
+  "max_horizontal_tracking_error_m": 0.011735336366481722,
+  "rms_horizontal_tracking_error_m": 0.0031172743622750591,
+  "max_3d_tracking_error_m": 0.05356583949733279,
+  "max_sim_speed_mps": 0.27087351710358554,
+  "speed_overshoot_percent": 35.436758551792757,
+  "seconds_above_110pct_of_cruise": 3.5789999999999953,
+  "max_ref_speed_mps": 0.20000000000000004,
+  "max_tilt_deg": 4.4137735883690583,
+  "all_waypoints_within_arrival_radius": true,
+  "max_waypoint_lag_s": -1.4483018600457314,
+  "max_closest_miss_m": 7.4455003925829189E-5,
+  "tag_spots_seen": 6,
+  "tag_spots_total": 6,
+  "assumptions": {
+    "tstep": 0.01,
+    "a_xy": 0.5,
+    "v_z": 0.3,
+    "a_z": 0.5,
+    "w_yaw": 0.8,
+    "a_yaw": 2,
+    "t_pad": 0.5
+  },
+  "arrival_radius_m": 0.25,
+  "simulink_warning": "Nonuniform distribution of output to dynamically sized inputs in block 'PosControl_Sim_RPT/Demux4'",
+  "coverage": [
+    {
+      "spot": 1,
+      "x_m": 1.35,
+      "y_m": -1.35,
+      "seen": true,
+      "first_seen_s": 19.009,
+      "time_in_view_s": 4.6880000000000024
+    },
+    {
+      "spot": 2,
+      "x_m": 2.7,
+      "y_m": -1.35,
+      "seen": true,
+      "first_seen_s": 28.484,
+      "time_in_view_s": 3.740000000000002
+    },
+    {
+      "spot": 3,
+      "x_m": 4.05,
+      "y_m": -1.35,
+      "seen": true,
+      "first_seen_s": 35.231,
+      "time_in_view_s": 4.7609999999999957
+    },
+    {
+      "spot": 4,
+      "x_m": 1.35,
+      "y_m": 0.9,
+      "seen": true,
+      "first_seen_s": 71.275,
+      "time_in_view_s": 6.3859999999999957
+    },
+    {
+      "spot": 5,
+      "x_m": 2.7,
+      "y_m": 0.9,
+      "seen": true,
+      "first_seen_s": 102.815,
+      "time_in_view_s": 3.7400000000000091
+    },
+    {
+      "spot": 6,
+      "x_m": 4.05,
+      "y_m": 0.9,
+      "seen": true,
+      "first_seen_s": 91.209,
+      "time_in_view_s": 5.35199999999999
+    }
+  ],
+  "waypoints": [
+    {
+      "waypoint": 1,
+      "t_ref_s": 23.524755586863449,
+      "t_in_radius_s": 22.075,
+      "lag_s": -1.44975558686345,
+      "closest_m": 1.4183828978981168E-5
+    },
+    {
+      "waypoint": 2,
+      "t_ref_s": 40.444824817577626,
+      "t_in_radius_s": 38.995,
+      "lag_s": -1.4498248175776283,
+      "closest_m": 1.973780716309974E-5
+    },
+    {
+      "waypoint": 3,
+      "t_ref_s": 47.458320226071244,
+      "t_in_radius_s": 46.01,
+      "lag_s": -1.448320226071246,
+      "closest_m": 7.44219428832152E-5
+    },
+    {
+      "waypoint": 4,
+      "t_ref_s": 65.221815634564862,
+      "t_in_radius_s": 63.772,
+      "lag_s": -1.4498156345648638,
+      "closest_m": 1.9018655304258566E-5
+    },
+    {
+      "waypoint": 5,
+      "t_ref_s": 72.235311043058488,
+      "t_in_radius_s": 70.787,
+      "lag_s": -1.4483110430584816,
+      "closest_m": 7.4455003925829189E-5
+    },
+    {
+      "waypoint": 6,
+      "t_ref_s": 89.998806451552113,
+      "t_in_radius_s": 88.549,
+      "lag_s": -1.4498064515521065,
+      "closest_m": 2.0115442484214345E-5
+    },
+    {
+      "waypoint": 7,
+      "t_ref_s": 97.012301860045739,
+      "t_in_radius_s": 95.564000000000007,
+      "lag_s": -1.4483018600457314,
+      "closest_m": 4.0282626674876005E-5
+    },
+    {
+      "waypoint": 8,
+      "t_ref_s": 114.77579726853936,
+      "t_in_radius_s": 113.32600000000001,
+      "lag_s": -1.4497972685393563,
+      "closest_m": 2.1149125656491675E-5
+    },
+    {
+      "waypoint": 9,
+      "t_ref_s": 124.44694412761739,
+      "t_in_radius_s": 122.998,
+      "lag_s": -1.4489441276173807,
+      "closest_m": 1.4592020213027743E-5
+    }
+  ]
+}
