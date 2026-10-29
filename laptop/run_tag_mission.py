@@ -19,6 +19,11 @@ Examples (from the repo root):
     # Real drone: asks for TAKEOFF-22 before sending the takeoff command
     python laptop/run_tag_mission.py --drone-id 22
 
+    # Walk-through on the real drone, carried by hand with the props off: prints
+    # every tag it localises, sends no takeoff/goto/land command. Ctrl+C ends it.
+    # --truth adds each tag's horizontal error against tape-measured positions.
+    python laptop/run_tag_mission.py --drone-id 22 --detect-only --truth "1:1.35,-1.35 2:4.0,-1.35"
+
 Outputs go to <output_dir>/<time>_drone<ID>/ (events.csv, observations.csv,
 tags.csv, trajectory.csv, summary.json).
 
@@ -59,6 +64,16 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="Print the sweep plan and exit; no connection, no flight.")
     p.add_argument("--yes", action="store_true",
                    help="Skip the TAKEOFF-<id> confirmation prompt.")
+    p.add_argument("--detect-only", action="store_true",
+                   help="Walk-through test on the real drone: connect, localise and print tags, "
+                        "never send takeoff/goto/land. Carry the drone by hand, props off. "
+                        "Ctrl+C finishes.")
+    p.add_argument("--duration", type=float, metavar="SECONDS",
+                   help="With --detect-only: stop by itself after this many seconds.")
+    p.add_argument("--truth", metavar="'ID:X,Y ...'",
+                   help="Measured tag positions in the local frame, e.g. "
+                        "'1:1.35,-1.35 2:4.0,-1.35 3:2.7,0.9'. Prints each tag's horizontal "
+                        "error at the end.")
     p.add_argument("--out-dir", help="Override output_dir from the config.")
     p.add_argument("--telem-port", type=int, default=5005)
     p.add_argument("--cmd-port", type=int, default=5006)
@@ -75,9 +90,28 @@ def make_confirm(drone_id: int):
     return confirm
 
 
+def parse_truth(text: str | None) -> dict[int, tuple[float, float]]:
+    """'1:1.35,-1.35 2:4.0,-1.35' -> {1: (1.35, -1.35), 2: (4.0, -1.35)}."""
+    truth: dict[int, tuple[float, float]] = {}
+    for token in (text or "").replace(";", " ").split():
+        try:
+            tag_id, xy = token.split(":")
+            x, y = xy.split(",")
+            truth[int(tag_id)] = (float(x), float(y))
+        except ValueError:
+            raise SystemExit(f"--truth: cannot read '{token}'; use ID:X,Y such as 1:1.35,-1.35")
+    return truth
+
+
 def main(argv=None) -> int:
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    if args.detect_only and args.simulate:
+        raise SystemExit("--detect-only needs the real drone: the simulator does not move "
+                         "without a takeoff command. Use --simulate on its own for the dry run.")
+    if args.duration is not None and not args.detect_only:
+        raise SystemExit("--duration only applies with --detect-only.")
+    truth = parse_truth(args.truth)
     cfg = load_config(args.config)
 
     if args.plan_only:
@@ -121,11 +155,14 @@ def main(argv=None) -> int:
     if not out_root.is_absolute():
         out_root = HERE / out_root
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = out_root / f"{stamp}_drone{args.drone_id}{'_sim' if args.simulate else ''}"
+    suffix = "_sim" if args.simulate else ("_detectonly" if args.detect_only else "")
+    out_dir = out_root / f"{stamp}_drone{args.drone_id}{suffix}"
 
     mlog = MissionLog(out_dir, wall=clock.wall, now=clock.now)
-    confirm = None if (args.yes or args.simulate) else make_confirm(args.drone_id)
-    mission = TagMission(cfg, link, clock, mlog, drone_id=args.drone_id, confirm=confirm)
+    confirm = None if (args.yes or args.simulate or args.detect_only) else make_confirm(args.drone_id)
+    mission = TagMission(cfg, link, clock, mlog, drone_id=args.drone_id, confirm=confirm,
+                         detect_only=args.detect_only, detect_duration_s=args.duration,
+                         truth=truth or None)
 
     def on_sigint(signum, frame):
         raise KeyboardInterrupt
