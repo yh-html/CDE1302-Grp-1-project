@@ -20,6 +20,12 @@ end the search early but still return to the start and land.
 Limits: there is no touchdown signal in telemetry, so "landing" is the landing
 command being sent plus land_wait_s; and no obstacle avoidance (the firmware has
 none, and the brief only requires staying inside the boundaries).
+
+Detect-only mode (detect_only=True): a walk-through test with the drone carried
+by hand, props off.  It connects, prints every tag with the same localisation as
+a real run, and never sends a takeoff, goto, hold or land command (the link is
+wrapped so any such call raises).  Ctrl+C or detect_duration_s ends it normally.
+Pass truth={tag_id: (x, y)} to get the horizontal error of each tag at the end.
 """
 
 from __future__ import annotations
@@ -30,7 +36,7 @@ from typing import Callable, Optional
 
 from drone_link import DroneLink
 from mission_config import MissionConfig
-from mission_log import MissionLog, format_tag_table
+from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
 from protocol import (NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
 from sweep_planner import path_length, plan_sweep
@@ -38,6 +44,7 @@ from tag_localizer import (DetectionGate, Observation, PoseHistory, TagEstimate,
                            TagTracker, body_to_local)
 
 GOTO_RESEND_S = 2.0
+DETECT_STATUS_S = 5.0          # detect-only: how often the position is printed
 _MOVING = (NAV_ROTATING, NAV_FLYING, NAV_STUCK, NAV_TRAJ)
 
 
@@ -49,12 +56,30 @@ class _StopExploring(Exception):
     """End the search early; still return to the start and land."""
 
 
+class _ReadOnlyLink:
+    """Wraps a DroneLink for detect-only mode: reads pass through, every send_* raises."""
+
+    def __init__(self, link) -> None:
+        self._link = link
+
+    def __getattr__(self, name):
+        if name.startswith("send_"):
+            raise AssertionError(f"detect-only mode must never call {name}")
+        return getattr(self._link, name)
+
+
 class TagMission:
     def __init__(self, cfg: MissionConfig, link: DroneLink, clock,
                  mlog: MissionLog, *, drone_id: int,
-                 confirm: Optional[Callable[[], bool]] = None) -> None:
+                 confirm: Optional[Callable[[], bool]] = None,
+                 detect_only: bool = False,
+                 detect_duration_s: Optional[float] = None,
+                 truth: Optional[dict[int, tuple[float, float]]] = None) -> None:
         self.cfg = cfg
-        self.link = link
+        self.detect_only = detect_only
+        self.detect_duration_s = detect_duration_s
+        self.truth = dict(truth) if truth else None
+        self.link = _ReadOnlyLink(link) if detect_only else link
         self.clock = clock
         self.mlog = mlog
         self.drone_id = drone_id
@@ -245,6 +270,43 @@ class TagMission:
             except Exception as exc:                       # noqa: BLE001
                 self.mlog.event("LAND_FAILED", error=exc)
 
+    def _detect_only(self) -> None:
+        """Walk-through test: send nothing, localise and print tags while the drone is carried."""
+        self.mlog.start_clock()                       # mission time zero = start of the walk
+        self.mlog.event("DETECT_ONLY_START",
+                        note="no commands are sent; carry the drone by hand along the sweep, "
+                             "Ctrl+C to finish")
+        t_end = (None if self.detect_duration_s is None
+                 else self.clock.now() + self.detect_duration_s)
+        next_status = self.clock.now()
+        stale = False
+        try:
+            while t_end is None or self.clock.now() < t_end:
+                now = self.clock.now()
+                s = self.link.latest()
+                if s is None or now - s.t > self.cfg.stale_timeout_s:
+                    if not stale:
+                        stale = True
+                        self.mlog.event("TELEMETRY_STALE")
+                else:
+                    if stale:
+                        stale = False
+                        self.mlog.event("TELEMETRY_RESUMED")
+                    if now >= next_status:
+                        next_status = now + DETECT_STATUS_S
+                        self.mlog.event("POSITION", x=round(s.x, 2), y=round(s.y, 2),
+                                        heading_deg=round(math.degrees(s.heading_rad)),
+                                        inside_area=self.fence.contains(s.x, s.y),
+                                        tags_found=len(self.tracker.ids()))
+                exp = self.cfg.expected_tags
+                if (self.cfg.stop_when_all_found and exp is not None
+                        and len(self.tracker.ids()) >= exp):
+                    self.mlog.event("SEARCH_STOPPED", reason=f"all {exp} expected tags found")
+                    break
+                self.clock.sleep(0.1)
+        except KeyboardInterrupt:
+            self.mlog.event("DETECT_ONLY_STOPPED", reason="Ctrl+C")
+
     # -- entry point -------------------------------------------------------
 
     def run(self) -> int:
@@ -253,6 +315,10 @@ class TagMission:
             self.link.start()
             self._connect()
             self.mlog.event("PLAN", detail=self.describe_plan())
+            if self.detect_only:
+                self._detect_only()
+                self.mlog.event("DETECT_ONLY_END", tags=len(self.tracker.ids()))
+                return 0
             if self._confirm_fn is not None and not self._confirm_fn():
                 self.exit_reason = "cancelled before takeoff"
                 self.mlog.event("CANCELLED")
@@ -286,7 +352,10 @@ class TagMission:
         ests = self.tracker.estimates()
         self.mlog.write_tags(ests)
         events = {e["event"]: e for e in self.mlog.events()}
+        errors = truth_errors(ests, self.truth) if self.truth else None
         self.mlog.write_summary({
+            "mode": "detect-only" if self.detect_only else "mission",
+            "truth_errors": errors,
             "drone_id": self.drone_id, "exit_code": code,
             "exit_reason": self.exit_reason, "search_stopped": self._stop_reason,
             "waypoints_planned": len(self.plan), "waypoints_reached": self._reached,
@@ -301,4 +370,7 @@ class TagMission:
         })
         print("\nDetected AprilTags (local frame, origin = takeoff point):", flush=True)
         print(format_tag_table(ests), flush=True)
+        if errors:
+            print("\nHorizontal error against the reference positions:", flush=True)
+            print(format_truth_table(errors), flush=True)
         self.mlog.close()

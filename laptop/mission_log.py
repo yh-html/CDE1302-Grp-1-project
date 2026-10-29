@@ -22,6 +22,7 @@ import csv
 import dataclasses
 import json
 import logging
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional
@@ -140,6 +141,40 @@ class MissionLog:
 
 def _r(v: Optional[float]):
     return "" if v is None else round(v, 2)
+
+
+def truth_errors(estimates: list[TagEstimate],
+                 truth: dict[int, tuple[float, float]]) -> list[dict]:
+    """Horizontal error of each reference tag; error_m is None if the tag was not localised."""
+    by_id = {e.tag_id: e for e in estimates}
+    rows = []
+    for tag_id in sorted(set(truth) | set(by_id)):
+        e, ref = by_id.get(tag_id), truth.get(tag_id)
+        row = {"tag_id": tag_id,
+               "est_x": None if e is None else round(e.x, 3),
+               "est_y": None if e is None else round(e.y, 3),
+               "ref_x": None if ref is None else ref[0],
+               "ref_y": None if ref is None else ref[1],
+               "error_m": None}
+        if e is not None and ref is not None:
+            row["error_m"] = round(math.hypot(e.x - ref[0], e.y - ref[1]), 3)
+        rows.append(row)
+    return rows
+
+
+def format_truth_table(rows: list[dict]) -> str:
+    lines = ["  ID |  estimate (x, y) m  |  reference (x, y) m | error (m)",
+             "-----+--------------------+---------------------+----------"]
+    for r in rows:
+        est = "   not detected" if r["est_x"] is None else f"({r['est_x']:6.2f}, {r['est_y']:6.2f})"
+        ref = "   not in the list" if r["ref_x"] is None else f"({r['ref_x']:6.2f}, {r['ref_y']:6.2f})"
+        err = "    --" if r["error_m"] is None else f"{r['error_m']:6.3f}"
+        lines.append(f"{r['tag_id']:4d} | {est:18s} | {ref:19s} | {err}")
+    errs = [r["error_m"] for r in rows if r["error_m"] is not None]
+    if errs:
+        lines.append(f"mean error {sum(errs) / len(errs):.3f} m, worst {max(errs):.3f} m "
+                     f"({len(errs)} of {sum(1 for r in rows if r['ref_x'] is not None)} reference tags)")
+    return "\n".join(lines)
 
 
 def format_tag_table(estimates: list[TagEstimate]) -> str:
