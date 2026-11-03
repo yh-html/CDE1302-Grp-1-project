@@ -1,3 +1,5 @@
+> Superseded by `DRONE_BRINGUP_GUIDE.md` (see its "TODAY" section for the 3 Nov flight test).
+
 # Pre-flight guide: from a built drone to the first mission
 
 Written 29 Oct 2026 for the final run on **Thu 12 Nov, 4:15 to 5:00 pm**. Drone ID **22** is used in every example: **replace it with the ID on your drone** (the number flashed into the ESP32).
@@ -122,7 +124,7 @@ Run from `C:\cde1302`, with `$py` set as in section 2.
 2. **Camera and tags:** [repo]
    ```powershell
    & $py laptop/camera_stream.py --esp-ip 192.168.1.222
-   & $py laptop/tag_stream.py --esp-ip 192.168.1.222 --detail
+   & $py laptop/tag_stream_legacy.py --esp-ip 192.168.1.222 --detail
    ```
    Hold a printed tag16h5 tag in view at about 0.5 to 1 m. It should be outlined with its ID. Use `--fps 5` in flight.
 3. **Props-off arm test:** [repo]
