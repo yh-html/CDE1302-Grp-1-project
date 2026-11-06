@@ -58,6 +58,7 @@ mission:
   arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
   min_leg_timeout_s: 15.0
   max_mission_s: 600.0    # stop searching after this long, then return and land
+  soft_fence_margin_m: 0.15  # past the search area by this: hold, fly back to start, land (before the hard fence)
   geofence_margin_m: 0.5  # land if outside the search area plus this
   stale_timeout_s: 3.0    # land if telemetry is older than this
   connect_timeout_s: 30.0

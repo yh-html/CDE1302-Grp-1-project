@@ -1,0 +1,82 @@
+# DEMO CONFIG: official search area, returns and lands as soon as expected_tags (3) are found (saves completion time).
+# Same as tag_mission.yaml except stop_when_all_found: true. Measure camera offsets and latency before flying.
+# Configuration for laptop/run_tag_mission.py (CDE1302 mini-project).
+#
+# All distances in metres, in the drone's LOCAL frame: origin at the takeoff
+# point, x = North (forward at takeoff), y = East.  Values marked PLACEHOLDER or
+# ASSUMED must be replaced with measurements before the demonstration.
+
+# From "CDE1302-Mini Project-Flying Area.pdf" (Studio 1, E2A): search area 3.6 m x 3.15 m,
+# 0.45 m beyond the 0.9 m launch square, launch point at its centre, 1.8 m of search area to
+# the left of the launch line and 1.35 m to the right, three tags. The drone starts facing
+# the search area (x forward, y right; confirmed by the team). Confirm the exact start position
+# with the examiner on the day. Possible tag spots in the diagram (not used by the planner):
+# x = 1.35, 2.7, 4.0 and y = -1.35, +0.9.
+search_area:
+  min_x: 0.9
+  max_x: 4.5
+  min_y: -1.8
+  max_y: 1.35
+
+sweep:
+  # 1.0 m lanes cover the whole area (8 waypoints, 18.1 m, about 110 s at 0.2 m/s). Setting 2.6
+  # gives two lanes on the two tag rows (4 waypoints, 12.1 m, about 80 s) but only works if the
+  # tags are on the marked spots.
+  lane_spacing_m: 1.0     # ASSUMED. `run_tag_mission.py --plan-only` prints the camera-based maximum and a suggestion.
+  edge_margin_m: 0.3      # keep waypoints this far inside the boundary
+  lane_axis: x            # lanes run along x (forward); "y" runs them sideways
+
+# Where the camera sits on the drone and how it is tilted.  This sets the tag
+# localisation error (15% of the marks): measure it on the assembled drone.
+# PLACEHOLDER: from the CAD of the stock-parts CameraHolder_TPU (codex/stock_mounts,
+# output/reports/GEOMETRY_BRIEF.md), NOT measured on the printed drone. It assumes the
+# lens is centred on the pocket, a 32 mm standoff length (assumed) and the FC hanging
+# 5 mm under the frame (body origin = FC centre). Measure the real lens position
+# on the assembled drone and replace these three offsets.
+camera:
+  pitch_deg: 45.0         # fixed nose-down tilt of the optical axis
+  hfov_deg: 91.0          # field of view, firmware calibration (main/at_detect.c)
+  vfov_deg: 82.0
+  fwd_offset_m: 0.070     # lens forward of the drone body origin
+  right_offset_m: 0.0
+  down_offset_m: 0.008    # lens below the body origin (0.013 if measured from the frame underside plane)
+
+detection:
+  max_pose_err: 0.5       # firmware pose reprojection error limit (at_detect.c)
+  max_range_m: 3.0        # ASSUMED. Ignore tags farther than this (poor depth accuracy)
+  min_view_elevation_deg: 30.0   # ASSUMED. Floor tags seen flatter than this will not decode/localise well
+  latency_s: 0.0          # ASSUMED. Delay between the camera frame and the packet; measure it
+  update_threshold_m: 0.2 # print TAG_UPDATED when the fused position moves more than this
+  id_max: 21              # ignore IDs above this (16h5 false positives); course tags are 0-21
+  rescue_margin: 70       # firmware drops tags with hamming>=2 even at high margin; keep them if margin >= this
+  rescue_max_hamming: 3
+  expected_tags: 3        # Flying Area PDF: three tags
+  settle_s: 4.0           # hover this long after the last tag is found, to average more sightings
+  stop_when_all_found: true    # true: return as soon as expected_tags are found
+
+mission:
+  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (waypoints/
+  # WAYPOINT_FLIGHT_TEST_GUIDE.md says about 0.2 m/s); the firmware's NAV_CRUISE_SPEED_MS is NOT
+  # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
+  cruise_speed_mps: 0.20
+  altitude_m: 0.5         # firmware CRUISE_ALT_M (main/main.c); used for the sweep planning and the sim
+  takeoff_wait_s: 12.0    # as in laptop/TEST_GUIDE.md
+  arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
+  min_leg_timeout_s: 15.0
+  max_mission_s: 600.0    # stop searching after this long, then return and land
+  soft_fence_margin_m: 0.15  # past the search area by this: hold, fly back to start, land (before the hard fence)
+  geofence_margin_m: 0.5  # land if outside the search area plus this
+  stale_timeout_s: 3.0    # land if telemetry is older than this
+  connect_timeout_s: 30.0
+  land_wait_s: 8.0
+  max_consecutive_misses: 3
+  output_dir: mission_logs   # relative to laptop/
+
+# Used only with --simulate: tags on the floor, local frame.
+simulation:
+  noise_m: 0.02           # Gaussian noise on the camera-frame translation
+  takeoff_s: 8.0
+  tags:
+    1: [1.35, -1.35]        # three of the six possible spots in the Flying Area diagram
+    2: [4.0, -1.35]
+    3: [2.7, 0.9]

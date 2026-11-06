@@ -40,6 +40,10 @@ class MissionConfig:
     update_threshold_m: float
     expected_tags: int | None
     stop_when_all_found: bool
+    settle_s: float
+    id_max: int | None
+    rescue_margin: float | None
+    rescue_max_hamming: int
     cruise_speed_mps: float
     altitude_m: float
     takeoff_wait_s: float
@@ -48,11 +52,18 @@ class MissionConfig:
     max_mission_s: float
     geofence_margin_m: float
     stale_timeout_s: float
+    soft_fence_margin_m: float
     connect_timeout_s: float
     land_wait_s: float
     max_consecutive_misses: int
     output_dir: str
     sim: SimSettings
+    # Smooth-trajectory mode (None = stop-and-go goto waypoints). See traj_gen.py.
+    traj_speed_mps: float | None = None
+    traj_corner_m: float = 0.35
+    traj_accel: float = 0.08
+    traj_dt_s: float = 0.1
+    traj_csv: str | None = None     # fly this t,x,y,z CSV instead of generating the sweep
 
 
 def _num(section: dict, key: str, default: float, positive: bool = False,
@@ -84,6 +95,7 @@ def parse_config(cfg: dict) -> MissionConfig:
     det = cfg.get("detection", {}) or {}
     mis = cfg.get("mission", {}) or {}
     sim = cfg.get("simulation", {}) or {}
+    traj = cfg.get("trajectory", {}) or {}
 
     lane_axis = str(sweep.get("lane_axis", "x"))
     if lane_axis not in ("x", "y"):
@@ -118,6 +130,10 @@ def parse_config(cfg: dict) -> MissionConfig:
         update_threshold_m=_num(det, "update_threshold_m", 0.2, positive=True),
         expected_tags=expected,
         stop_when_all_found=bool(det.get("stop_when_all_found", False)),
+        settle_s=_num(det, "settle_s", 0.0, minimum=0.0),
+        id_max=(int(det["id_max"]) if det.get("id_max") is not None else None),
+        rescue_margin=(float(det["rescue_margin"]) if det.get("rescue_margin") is not None else None),
+        rescue_max_hamming=int(_num(det, "rescue_max_hamming", 3, minimum=0)),
         cruise_speed_mps=_num(mis, "cruise_speed_mps", 0.20, positive=True),
         altitude_m=_num(mis, "altitude_m", 0.5, positive=True),
         takeoff_wait_s=_num(mis, "takeoff_wait_s", 12.0, minimum=0.0),
@@ -126,6 +142,7 @@ def parse_config(cfg: dict) -> MissionConfig:
         max_mission_s=_num(mis, "max_mission_s", 600.0, positive=True),
         geofence_margin_m=_num(mis, "geofence_margin_m", 0.5, minimum=0.0),
         stale_timeout_s=_num(mis, "stale_timeout_s", 3.0, positive=True),
+        soft_fence_margin_m=_num(mis, "soft_fence_margin_m", 0.15, minimum=0.0),
         connect_timeout_s=_num(mis, "connect_timeout_s", 30.0, positive=True),
         land_wait_s=_num(mis, "land_wait_s", 8.0, minimum=0.0),
         max_consecutive_misses=int(_num(mis, "max_consecutive_misses", 3, minimum=1)),
@@ -136,6 +153,11 @@ def parse_config(cfg: dict) -> MissionConfig:
             takeoff_s=_num(sim, "takeoff_s", 8.0, minimum=0.0),
             max_range_m=_num(sim, "max_range_m", 4.0, positive=True),
         ),
+        traj_speed_mps=(_num(traj, "speed_mps", 0.12, positive=True) if traj.get("enabled", False) else None),
+        traj_corner_m=_num(traj, "corner_radius_m", 0.35, positive=True),
+        traj_accel=_num(traj, "accel_mps2", 0.08, positive=True),
+        traj_dt_s=_num(traj, "dt_s", 0.1, positive=True),
+        traj_csv=(str(traj["csv"]) if traj.get("csv") else None),
     )
 
 

@@ -28,7 +28,8 @@ from typing import Callable, Optional
 from comms import CommsNode
 from protocol import (
     CMD_GOTO, CMD_HOLD, CMD_LAND, CMD_START,
-    NAV_ARRIVED, NAV_FLYING, NAV_IDLE, NAV_STATE_NAMES,
+    NAV_ARRIVED, NAV_FLYING, NAV_IDLE, NAV_STATE_NAMES, NAV_TRAJ,
+    build_traj_packets, build_traj_start,
     AT_DEBUG_PORT, AtDebugPacket, CommandPacket, TagDetection,
     TelemetryPacket, parse_at_debug,
 )
@@ -142,6 +143,10 @@ class DroneLink(ABC):
     def send_goto(self, x: float, y: float) -> None: ...
 
     @abstractmethod
+    def send_trajectory(self, pts, dt_ms: int) -> None:
+        """Upload (x, y, z) offsets from the hover point and start playback."""
+
+    @abstractmethod
     def send_hold(self) -> None: ...
 
     @abstractmethod
@@ -238,6 +243,14 @@ class UdpLink(DroneLink):
     def send_goto(self, x: float, y: float) -> None:
         self._send(CommandPacket(CMD_GOTO, goal_x=x, goal_y=y), "CMD_GOTO")
 
+    def send_trajectory(self, pts, dt_ms: int) -> None:
+        import random
+        traj_id = random.randint(1, 255)
+        for p in build_traj_packets(traj_id, pts):
+            self._comms.send_raw(self.drone_id, p)
+            time.sleep(0.025)          # ESP drains commands from a small UDP queue
+        self._comms.send_raw(self.drone_id, build_traj_start(traj_id, dt_ms))
+
     def send_hold(self) -> None:
         self._send(CommandPacket(CMD_HOLD), "CMD_HOLD")
 
@@ -290,6 +303,9 @@ class SimLink(DroneLink):
         self.mode = "ground"            # ground | takeoff | hover | fly | landed
         self._takeoff_left = 0.0
         self._goal: Optional[tuple[float, float]] = None
+        self._traj = None               # list of (x, y) absolute, played at _traj_dt
+        self._traj_dt = 0.1
+        self._traj_t = 0.0
         self._nav = NAV_IDLE
         self._telem_period = 1.0 / telem_hz
         self._packet_period = 1.0 / packet_hz
@@ -325,8 +341,22 @@ class SimLink(DroneLink):
             self.mode = "fly"
             self._nav = NAV_FLYING
 
+    def send_trajectory(self, pts, dt_ms: int) -> None:
+        self._log_cmd("TRAJ")
+        if self.mode in ("hover", "fly"):
+            self._traj = [(self.x + p[0] - pts[0][0], self.y + p[1] - pts[0][1]) for p in pts]
+            self._traj_dt = dt_ms / 1000.0
+            self._traj_t = 0.0
+            self._goal = None
+            self.mode = "traj"
+            self._nav = NAV_TRAJ
+
     def send_hold(self) -> None:
         self._log_cmd("HOLD")
+        if self.mode == "traj":
+            self._traj = None
+            self.mode = "hover"
+            self._nav = NAV_IDLE
         if self.mode == "fly":
             self._goal = None
             self.mode = "hover"
@@ -350,6 +380,21 @@ class SimLink(DroneLink):
             self._takeoff_left -= dt
             if self._takeoff_left <= 0:
                 self.mode = "hover"
+        elif self.mode == "traj" and self._traj is not None:
+            self._traj_t += dt
+            k = self._traj_t / self._traj_dt
+            i = int(k)
+            if i >= len(self._traj) - 1:
+                self.x, self.y = self._traj[-1]
+                self._traj = None
+                self.mode = "hover"
+                self._nav = NAV_IDLE
+            else:
+                a = k - i
+                (x0, y0), (x1, y1) = self._traj[i], self._traj[i + 1]
+                if math.hypot(x1 - x0, y1 - y0) > 1e-6:
+                    self.heading = self.heading   # fixed yaw during trajectory playback
+                self.x, self.y = x0 + a * (x1 - x0), y0 + a * (y1 - y0)
         elif self.mode == "fly" and self._goal is not None:
             dx, dy = self._goal[0] - self.x, self._goal[1] - self.y
             dist = math.hypot(dx, dy)
@@ -374,7 +419,7 @@ class SimLink(DroneLink):
         self._packet_acc += dt
         if self._packet_acc >= self._packet_period - 1e-9:
             self._packet_acc = 0.0
-            if self.mode in ("hover", "fly"):
+            if self.mode in ("hover", "fly", "traj"):
                 self._emit_detection(self._clock.now(), self._make_packet())
 
     def _make_packet(self) -> AtDebugPacket:

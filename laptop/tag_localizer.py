@@ -165,6 +165,8 @@ class Observation:
     pose_err: float
     accepted: bool
     reason: str = ""              # why it was rejected, if it was
+    hamming: int = -1             # bit errors corrected by the decoder
+    rescued: bool = False         # position from the pixel centre + known height (no firmware pose)
 
 
 @dataclass

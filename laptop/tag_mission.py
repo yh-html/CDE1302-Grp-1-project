@@ -37,12 +37,15 @@ from typing import Callable, Optional
 from drone_link import DroneLink
 from mission_config import MissionConfig
 from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
-from protocol import (NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
+from protocol import (TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
 from sweep_planner import path_length, plan_sweep
+from traj_gen import smooth_path, stats as traj_stats
 from tag_localizer import (DetectionGate, Observation, PoseHistory, TagEstimate,
                            TagTracker, body_to_local)
 
+# Camera intrinsics from main/at_detect.c (pixels)
+_F_X, _F_Y, _C_X, _C_Y = 163.5047216, 153.22210511, 154.00573087, 107.10222796
 GOTO_RESEND_S = 2.0
 DETECT_STATUS_S = 5.0          # detect-only: how often the position is printed
 _MOVING = (NAV_ROTATING, NAV_FLYING, NAV_STUCK, NAV_TRAJ)
@@ -94,12 +97,17 @@ class TagMission:
         self.plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
                                self.start_point, cfg.lane_axis)
         self.fence = cfg.area.including(*self.start_point).expanded(cfg.geofence_margin_m)
+        # Soft fence: just inside the hard fence. Crossing it ends the search, the drone
+        # holds, flies back to the start and lands (instead of landing where it is).
+        soft = min(cfg.soft_fence_margin_m, max(cfg.geofence_margin_m - 0.05, 0.0))
+        self.soft_fence = cfg.area.including(*self.start_point).expanded(soft)
 
         self._started = False
         self._land_sent = False
         self._reached = 0
         self._missed = 0
         self._stop_reason = ""
+        self._all_found_t = None
         self.exit_reason = "completed"
 
         link.on_telemetry(self._on_telemetry)
@@ -118,25 +126,53 @@ class TagMission:
         px, py, ph = pose
         with self._lock:
             for det in pkt.detections:
-                if det.id < 0:
-                    continue
-                fwd, right, down = self.cfg.camera.camera_to_body(det.tx, det.ty, det.tz)
+                if det.id < 0 or (self.cfg.id_max is not None and det.id > self.cfg.id_max):
+                    continue                          # not one of the course tags
+                tx, ty, tz, pose_err, has_pose, rescued = (
+                    det.tx, det.ty, det.tz, det.pose_err, det.has_pose, False)
+                if (not has_pose and self.cfg.rescue_margin is not None
+                        and det.margin >= self.cfg.rescue_margin
+                        and det.hamming <= self.cfg.rescue_max_hamming):
+                    r = self._rescue_translation(det)
+                    if r is not None:
+                        tx, ty, tz = r
+                        pose_err, has_pose, rescued = 0.0, True, True
+                fwd, right, down = self.cfg.camera.camera_to_body(tx, ty, tz)
                 lx, ly = body_to_local(fwd, right, px, py, ph)
-                rng = det.range_m
-                reason = self.tracker.reject_reason(det.has_pose, det.pose_err, rng)
+                rng = math.sqrt(tx * tx + ty * ty + tz * tz)
+                reason = self.tracker.reject_reason(has_pose, pose_err, rng)
                 obs = Observation(
                     t_wall=self.mlog.stamp(), t_mission_s=self.mlog.mission_time(),
                     frame_ms=pkt.frame_ms, tag_id=det.id,
-                    tx=det.tx, ty=det.ty, tz=det.tz,
+                    tx=tx, ty=ty, tz=tz,
                     fwd=fwd, right=right, down=down,
                     drone_x=px, drone_y=py, heading_rad=ph,
                     local_x=lx, local_y=ly, range_m=rng,
-                    margin=det.margin, pose_err=det.pose_err,
-                    accepted=not reason, reason=reason)
+                    margin=det.margin, pose_err=pose_err,
+                    accepted=not reason, reason=reason,
+                    hamming=det.hamming, rescued=rescued)
                 self.mlog.observation(obs)
                 est = self.tracker.add(obs)
                 if est is not None:
                     self._report(est, obs)
+
+    def _rescue_translation(self, det):
+        """Camera-frame position of a confident tag the firmware gave no pose for.
+
+        Uses the tag's pixel centre and the known camera height above the floor
+        (ray-floor intersection), assuming the tag lies flat on the floor.  Less
+        precise than the firmware pose (it trusts the configured altitude), so
+        it is meant to catch tags the firmware gate (hamming <= 1) dropped.
+        """
+        ray = ((det.cx - _C_X) / _F_X, (det.cy - _C_Y) / _F_Y, 1.0)
+        cam = self.cfg.camera
+        o = cam.camera_to_body(0.0, 0.0, 0.0)
+        b = cam.camera_to_body(*ray)
+        down_dir = b[2] - o[2]
+        if down_dir < 0.1:                       # ray does not hit the floor
+            return None
+        s = (self.cfg.altitude_m - cam.down_offset_m) / down_dir
+        return ray[0] * s, ray[1] * s, s
 
     def _report(self, est: TagEstimate, obs: Observation) -> None:
         last = self._reported.get(est.tag_id)
@@ -164,13 +200,22 @@ class TagMission:
         if not self.fence.contains(s.x, s.y):
             raise MissionAbort(f"geofence breach at ({s.x:.2f}, {s.y:.2f})")
         if allow_stop:
+            if not self.soft_fence.contains(s.x, s.y):
+                raise _StopExploring(f"soft fence: ({s.x:.2f}, {s.y:.2f}) near the boundary, returning")
             tm = self.mlog.mission_time()
             if tm is not None and tm > self.cfg.max_mission_s:
                 raise _StopExploring(f"mission time limit {self.cfg.max_mission_s:.0f}s")
             exp = self.cfg.expected_tags
             if (self.cfg.stop_when_all_found and exp is not None
                     and len(self.tracker.ids()) >= exp):
-                raise _StopExploring(f"all {exp} expected tags found")
+                if self.cfg.settle_s <= 0:
+                    raise _StopExploring(f"all {exp} expected tags found")
+                if self._all_found_t is None:        # hover and keep averaging sightings
+                    self._all_found_t = now
+                    self.link.send_hold()
+                    self.mlog.event("ALL_TAGS_FOUND_HOVERING", settle_s=self.cfg.settle_s)
+                elif now - self._all_found_t >= self.cfg.settle_s:
+                    raise _StopExploring(f"all {exp} expected tags found, hovered {self.cfg.settle_s:g}s")
 
     def _leg_timeout(self, goal: tuple[float, float]) -> float:
         s = self.link.latest()
@@ -224,7 +269,65 @@ class TagMission:
             self.clock.sleep(0.1)
         self.mlog.event("TAKEOFF_WAIT_DONE")
 
+    def _trajectory_points(self):
+        """(N,3) array of (x, y, z) offsets and dt_ms for smooth-trajectory mode."""
+        import numpy as np
+        dt_ms = round(self.cfg.traj_dt_s * 1000)
+        if self.cfg.traj_csv:
+            data = np.atleast_2d(np.genfromtxt(self.cfg.traj_csv, delimiter=",", comments="#"))
+            data = data[~np.isnan(data).any(axis=1)]
+            t = data[:, 0]
+            tq = np.arange(t[0], t[-1] + 1e-9, dt_ms / 1000)
+            xy = np.column_stack([np.interp(tq, t, data[:, c]) for c in (1, 2)])
+        else:
+            tr = smooth_path(self.plan, self.start_point, self.cfg.traj_speed_mps,
+                             self.cfg.traj_corner_m, self.cfg.traj_accel,
+                             dt=dt_ms / 1000)
+            xy = tr[:, 1:3]
+        pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
+        if len(pts) > TRAJ_MAX_PTS:
+            raise MissionAbort(f"trajectory has {len(pts)} points, firmware limit {TRAJ_MAX_PTS}; "
+                               "raise trajectory.dt_s or speed")
+        return pts, dt_ms
+
+    def _explore_trajectory(self) -> None:
+        pts, dt_ms = self._trajectory_points()
+        duration = (len(pts) - 1) * dt_ms / 1000
+        self.mlog.event("TRAJECTORY_START", points=len(pts), duration_s=round(duration, 1),
+                        source=self.cfg.traj_csv or "generated sweep")
+        try:
+            self._play_trajectory(pts, dt_ms, duration)
+        except _StopExploring:
+            self.link.send_hold()          # nav_cancel: drone hovers where it is
+            raise
+
+    def _play_trajectory(self, pts, dt_ms: int, duration: float) -> None:
+        started = False
+        deadline = self.clock.now() + duration + 15.0
+        for attempt in range(1, 6):
+            self.link.send_trajectory(pts, dt_ms)
+            t_end = self.clock.now() + 1.5
+            while self.clock.now() < t_end:
+                self._check_safety(allow_stop=True)
+                if self.link.latest().nav_state == NAV_TRAJ:
+                    started = True
+                    break
+                self.clock.sleep(0.1)
+            if started:
+                break
+            self.mlog.event("TRAJECTORY_RETRY", attempt=attempt)
+        if not started:
+            raise MissionAbort("drone did not start the trajectory")
+        while ((self.link.latest().nav_state == NAV_TRAJ or self._all_found_t is not None)
+               and self.clock.now() < deadline):
+            self._check_safety(allow_stop=True)
+            self.clock.sleep(0.1)
+        self.mlog.event("TRAJECTORY_END", tags_found=len(self.tracker.ids()))
+
     def _explore(self) -> None:
+        if self.cfg.traj_speed_mps or self.cfg.traj_csv:
+            self._explore_trajectory()
+            return
         total = len(self.plan)
         prev_misses = 0
         for i, (wx, wy) in enumerate(self.plan, start=1):
