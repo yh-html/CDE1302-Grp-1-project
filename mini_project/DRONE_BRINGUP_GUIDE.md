@@ -7,7 +7,7 @@ This guide compiles the lab manuals (Labs 1, 2, 3 and 5), your own Lab 2, 3 and 
 Where each step comes from:
 - **[Lab 1] [Lab 2] [Lab 3] [Lab 5]** = the lab manuals in `C:\cde1302\Labs\`.
 - **[Your Lab n]** = values you recorded in your own reports (`Lecture Notes\`).
-- **[repo]** = `README.md`, `laptop/TEST_GUIDE.md`, `waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `QGC_MAVLINK_BRIDGE.md`.
+- **[repo]** = `README.md`, `laptop/TEST_GUIDE.md`, `waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `docs/QGC_MAVLINK_BRIDGE.md`.
 - **[new]** = from the mission code written for the final run.
 - **[general]** = ordinary PX4 / QGroundControl practice that the labs and repo do not spell out. I have not seen your PX4 parameters, so treat these as things to check.
 - **[check]** = I could not settle this from the files. You must confirm it on the real drone.
@@ -145,7 +145,7 @@ Props off for all of this.
 2. Power the UAV and wait for the ESP32 and FC to finish starting.
 3. QGroundControl: Application Settings, Comm Links, Add. **Name `ESP32`, Type `UDP`, Port `14550`.** Save, Connect. [Lab 2, Method B]
 4. Confirm the vehicle icon, flight mode, battery and attitude display appear.
-5. If the vehicle does not appear: the alternative setup in `QGC_MAVLINK_BRIDGE.md` uses listening port 14550 and target host = the ESP32's IP, target port 8888. Check that the laptop IP is right, that the WiFi is shared, and that UDP 14550 is allowed through the firewall. [repo]
+5. If the vehicle does not appear: the alternative setup in `docs/QGC_MAVLINK_BRIDGE.md` uses listening port 14550 and target host = the ESP32's IP, target port 8888. Check that the laptop IP is right, that the WiFi is shared, and that UDP 14550 is allowed through the firewall. [repo]
 
 ### 4.3 Vehicle configuration [Lab 2, 5.1]
 Open Vehicle Configuration, then Summary and Airframe. Do **not** change the airframe unless told to. **Your drone, from your Lab 2 report:** vehicle type Generic Quadcopter, airframe Quadrotor X, autopilot PX4, mode switch on channel 6, **3 cells**. Check yours still matches. [Your Lab 2]
