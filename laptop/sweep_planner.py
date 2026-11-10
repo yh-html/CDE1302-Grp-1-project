@@ -46,6 +46,11 @@ class Area:
         return Area(self.min_x - margin, self.max_x + margin,
                     self.min_y - margin, self.max_y + margin)
 
+    def intersection(self, other: "Area") -> "Area":
+        """Overlap of the two areas; ValueError if they do not overlap."""
+        return Area(max(self.min_x, other.min_x), min(self.max_x, other.max_x),
+                    max(self.min_y, other.min_y), min(self.max_y, other.max_y))
+
 
 def path_length(points: list[Point], start: Point = (0.0, 0.0),
                 return_to_start: bool = False) -> float:
@@ -57,6 +62,21 @@ def path_length(points: list[Point], start: Point = (0.0, 0.0),
     if return_to_start and points:
         total += math.hypot(start[0] - prev[0], start[1] - prev[1])
     return total
+
+
+def square_corner(home: Point, p: Point, lane_axis: str = "x") -> Point | None:
+    """
+    Corner that turns home <-> p into two legs at 90 deg: one along the lanes
+    (level with `home`) and one across them (in line with `p`'s lane).
+    None if home and p are already in a straight line along an axis.
+    """
+    if lane_axis == "x":
+        corner = (home[0], p[1])
+    else:
+        corner = (p[0], home[1])
+    if abs(p[0] - home[0]) < 1e-9 or abs(p[1] - home[1]) < 1e-9:
+        return None
+    return corner
 
 
 def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
@@ -123,15 +143,6 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     v_lo, v_hi = shrink(v_lo, v_hi)
     lanes = _lane_positions(v_lo, v_hi, lane_spacing_m)
 
-    def _square_corner(home: Point, lane_end: Point) -> Point | None:
-        """Point level with `home` (along the lane) and in line with `lane_end`'s
-        lane, so home <-> lane_end becomes two legs at 90 deg; None if not needed."""
-        lu, lv = (lane_end[0], lane_end[1]) if lane_axis == "x" else (lane_end[1], lane_end[0])
-        hu, hv = (home[0], home[1]) if lane_axis == "x" else (home[1], home[0])
-        if abs(lu - hu) < 1e-9 or abs(lv - hv) < 1e-9:
-            return None                      # already straight in line
-        return to_xy(hu, lv)
-
     best: list[Point] | None = None
     best_cost = math.inf
     orders = {"left": [lanes], "right": [lanes[::-1]]}.get(entry, [lanes, lanes[::-1]])
@@ -148,11 +159,11 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
                         pts.append(p)
                 forward = not forward
             if pts and entry != "direct":
-                corner = _square_corner(start, pts[0])
+                corner = square_corner(start, pts[0], lane_axis)
                 if corner is not None:
                     pts.insert(0, corner)
             if pts and return_leg == "lateral":
-                corner = _square_corner(start, pts[-1])
+                corner = square_corner(start, pts[-1], lane_axis)
                 if corner is not None:
                     pts.append(corner)
             cost = path_length(pts, start, return_to_start=True)

@@ -68,6 +68,8 @@ class MissionConfig:
     traj_accel: float = 0.08
     traj_dt_s: float = 0.1
     traj_csv: str | None = None     # fly this t,x,y,z CSV instead of generating the sweep
+    walls: Area | None = None       # arena walls (local frame); fences are kept inside them
+    wall_clearance_m: float = 0.5   # nearest the hard geofence may come to a wall
 
 
 def _num(section: dict, key: str, default: float, positive: bool = False,
@@ -100,6 +102,18 @@ def parse_config(cfg: dict) -> MissionConfig:
     mis = cfg.get("mission", {}) or {}
     sim = cfg.get("simulation", {}) or {}
     traj = cfg.get("trajectory", {}) or {}
+
+    walls = None
+    w = cfg.get("arena_walls")
+    if w is not None:
+        try:
+            walls = Area(float(w["min_x"]), float(w["max_x"]),
+                         float(w["min_y"]), float(w["max_y"]))
+        except (KeyError, TypeError) as exc:
+            raise ValueError(f"arena_walls needs min_x, max_x, min_y, max_y ({exc})") from None
+        if not (walls.contains(0.0, 0.0) and walls.contains(area.min_x, area.min_y)
+                and walls.contains(area.max_x, area.max_y)):
+            raise ValueError("arena_walls must contain the start (0, 0) and the search area")
 
     lane_axis = str(sweep.get("lane_axis", "x"))
     if lane_axis not in ("x", "y"):
@@ -172,7 +186,38 @@ def parse_config(cfg: dict) -> MissionConfig:
         traj_accel=_num(traj, "accel_mps2", 0.08, positive=True),
         traj_dt_s=_num(traj, "dt_s", 0.1, positive=True),
         traj_csv=(str(traj["csv"]) if traj.get("csv") else None),
+        walls=walls,
+        wall_clearance_m=_num(mis, "wall_clearance_m", 0.5, minimum=0.0),
     )
+
+
+def fences(cfg: MissionConfig, start: tuple[float, float] = (0.0, 0.0)) -> tuple[Area, Area]:
+    """
+    (hard, soft) fences, used by both the mission and the live map.
+
+    hard: search area + start, grown by geofence_margin_m, then cut back to stay
+          wall_clearance_m inside arena_walls (if given). Outside it: land.
+    soft: search area + start, grown by soft_fence_margin_m, kept 0.05 m inside the
+          hard fence. Outside it: stop searching, fly back to the start, land.
+    """
+    base = cfg.area.including(*start)
+    hard = base.expanded(cfg.geofence_margin_m)
+    if cfg.walls is not None:
+        try:
+            hard = hard.intersection(cfg.walls.expanded(-cfg.wall_clearance_m))
+        except ValueError:
+            raise ValueError("wall_clearance_m leaves no room inside arena_walls") from None
+    soft_m = min(cfg.soft_fence_margin_m, max(cfg.geofence_margin_m - 0.05, 0.0))
+    try:
+        soft = base.expanded(soft_m).intersection(hard.expanded(-0.05))
+    except ValueError:
+        raise ValueError("fences leave no room: check arena_walls / wall_clearance_m") from None
+    if not (soft.contains(*start) and soft.contains(cfg.area.min_x, cfg.area.min_y)
+            and soft.contains(cfg.area.max_x, cfg.area.max_y)):
+        raise ValueError(
+            f"search area {cfg.area} or start {start} is closer than wall_clearance_m "
+            f"({cfg.wall_clearance_m} m) to arena_walls; shrink the area or the clearance")
+    return hard, soft
 
 
 def load_config(path: str | Path) -> MissionConfig:

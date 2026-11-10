@@ -116,6 +116,24 @@ def test_stop_when_all_found_ends_search_early_but_still_lands(tmp_path):
     assert mission._reached < len(mission.plan)
 
 
+def test_all_found_with_lateral_return_comes_home_via_the_corner(tmp_path):
+    code, mission, link, mlog, _ = run_mission(
+        tmp_path, cfg_extra={"detection": {"stop_when_all_found": True},
+                             "sweep": {"return_leg": "lateral"}})
+    assert code == 0 and link.landed
+    ev = names(mlog)
+    assert ev.index("SEARCH_STOPPED") < ev.index("RETURN_VIA_CORNER") < ev.index("RETURNING_TO_START")
+    corner = next(e for e in mlog.events() if e["event"] == "RETURN_VIA_CORNER")["details"]
+    assert corner["x"] == 0.0                      # level with the start, in the drone's lane
+
+
+def test_time_limit_return_stays_direct_even_with_lateral_return(tmp_path):
+    _, _, _, mlog, _ = run_mission(
+        tmp_path, cfg_extra={"mission": {"max_mission_s": 35.0},
+                             "sweep": {"return_leg": "lateral"}})
+    assert "RETURN_VIA_CORNER" not in names(mlog)
+
+
 def test_time_limit_stops_search_then_returns_and_lands(tmp_path):
     code, mission, link, mlog, _ = run_mission(
         tmp_path, cfg_extra={"mission": {"max_mission_s": 35.0}})

@@ -35,11 +35,11 @@ import threading
 from typing import Callable, Optional
 
 from drone_link import DroneLink
-from mission_config import MissionConfig
+from mission_config import MissionConfig, fences
 from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
 from protocol import (TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
-from sweep_planner import path_length, plan_sweep
+from sweep_planner import path_length, plan_sweep, square_corner
 from traj_gen import smooth_path, stats as traj_stats
 from tag_localizer import (DetectionGate, Observation, PoseHistory, TagEstimate,
                            TagTracker, body_to_local)
@@ -57,6 +57,10 @@ class MissionAbort(Exception):
 
 class _StopExploring(Exception):
     """End the search early; still return to the start and land."""
+
+
+class _AllTagsFound(_StopExploring):
+    """Search done early because every expected tag was found (a normal finish)."""
 
 
 class _ReadOnlyLink:
@@ -104,11 +108,13 @@ class TagMission:
         self.start_point = (0.0, 0.0)
         self.plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
                                self.start_point, cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return)
-        self.fence = cfg.area.including(*self.start_point).expanded(cfg.geofence_margin_m)
-        # Soft fence: just inside the hard fence. Crossing it ends the search, the drone
-        # holds, flies back to the start and lands (instead of landing where it is).
-        soft = min(cfg.soft_fence_margin_m, max(cfg.geofence_margin_m - 0.05, 0.0))
-        self.soft_fence = cfg.area.including(*self.start_point).expanded(soft)
+        # Hard fence: land where it is. Soft fence (just inside it): end the search, hold,
+        # fly back to the start and land. Both stay wall_clearance_m inside arena_walls.
+        self.fence, self.soft_fence = fences(cfg, self.start_point)
+        outside = [p for p in self.plan if not self.soft_fence.contains(*p)]
+        if outside:
+            raise ValueError(f"planned waypoints {outside} are outside the soft fence "
+                             f"{self.soft_fence}; they would end the search")
 
         self._started = False
         self._land_sent = False
@@ -227,13 +233,13 @@ class TagMission:
             if (self.cfg.stop_when_all_found and exp is not None
                     and self._found() >= exp):
                 if self.cfg.settle_s <= 0:
-                    raise _StopExploring(f"all {exp} expected tags found")
+                    raise _AllTagsFound(f"all {exp} expected tags found")
                 if self._all_found_t is None:        # hover and keep averaging sightings
                     self._all_found_t = now
                     self.link.send_hold()
                     self.mlog.event("ALL_TAGS_FOUND_HOVERING", settle_s=self.cfg.settle_s)
                 elif now - self._all_found_t >= self.cfg.settle_s:
-                    raise _StopExploring(f"all {exp} expected tags found, hovered {self.cfg.settle_s:g}s")
+                    raise _AllTagsFound(f"all {exp} expected tags found, hovered {self.cfg.settle_s:g}s")
 
     def _leg_timeout(self, goal: tuple[float, float]) -> float:
         s = self.link.latest()
@@ -388,8 +394,16 @@ class TagMission:
                 if prev_misses >= self.cfg.max_consecutive_misses:
                     raise _StopExploring(f"{prev_misses} consecutive waypoint timeouts")
 
-    def _return_and_land(self) -> None:
+    def _return_and_land(self, squared: bool = False) -> None:
         goal = self.start_point
+        s = self.link.latest()
+        if squared and self.cfg.sweep_return == "lateral" and s is not None:
+            corner = square_corner(goal, (s.x, s.y), self.cfg.lane_axis)
+            if corner is not None and self.soft_fence.contains(*corner):
+                self.mlog.event("RETURN_VIA_CORNER", x=round(corner[0], 2), y=round(corner[1], 2))
+                self.link.send_goto(*corner)
+                if not self._wait_arrival(corner, self._leg_timeout(corner), allow_stop=False):
+                    self.mlog.event("RETURN_CORNER_TIMEOUT")
         self.mlog.event("RETURNING_TO_START", x=goal[0], y=goal[1])
         self.link.send_goto(*goal)
         ok = self._wait_arrival(goal, self._leg_timeout(goal), allow_stop=False)
@@ -474,7 +488,12 @@ class TagMission:
             except _StopExploring as stop:
                 self._stop_reason = str(stop)
                 self.mlog.event("SEARCH_STOPPED", reason=self._stop_reason)
-            self._return_and_land()
+                # All tags found is a normal finish: come home the same squared-off way
+                # as the end of the sweep. Soft fence / time limit / timeouts: straight home.
+                squared = isinstance(stop, _AllTagsFound)
+            else:
+                squared = False          # sweep finished: the plan already ends at the corner
+            self._return_and_land(squared)
             self.mlog.event("MISSION_END", tags=self._found())
         except MissionAbort as exc:
             code = 1

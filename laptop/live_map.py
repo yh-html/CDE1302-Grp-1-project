@@ -45,7 +45,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon, Rectangle
 
-from mission_config import load_config
+from mission_config import fences, load_config
 from sweep_planner import plan_sweep
 from traj_gen import smooth_path
 
@@ -313,10 +313,13 @@ class LiveMap:
         ax.grid(True, alpha=0.3)
         ax.set_xlabel("y  East / right (m)")
         ax.set_ylabel("x  North / forward (m)")
-        soft = min(cfg.soft_fence_margin_m, max(cfg.geofence_margin_m - 0.05, 0.0))
-        ax.add_patch(self._rect(cfg.area, cfg.geofence_margin_m, fill=False, ec="#d62728",
+        hard, soft = fences(cfg)
+        if cfg.walls is not None:
+            ax.add_patch(self._rect(cfg.walls, None, fill=False, ec="k", lw=2.5,
+                                    label="arena walls"))
+        ax.add_patch(self._rect(hard, None, fill=False, ec="#d62728",
                                 ls="--", lw=1.2, label="hard geofence (lands)"))
-        ax.add_patch(self._rect(cfg.area, soft, fill=False, ec="#ff7f0e", ls=":", lw=1.2,
+        ax.add_patch(self._rect(soft, None, fill=False, ec="#ff7f0e", ls=":", lw=1.2,
                                 label="soft fence (returns)"))
         ax.add_patch(self._rect(cfg.area, None, fc="#1f77b4", alpha=0.07, ec="#1f77b4", lw=1.5,
                                 label="search area"))
@@ -329,7 +332,7 @@ class LiveMap:
             print(f"(planned path not drawn: {exc})")
         ax.plot(0, 0, marker="s", ms=10, mfc="none", mec="k", mew=1.5, label="start / takeoff")
 
-        fence = cfg.area.including(0.0, 0.0).expanded(cfg.geofence_margin_m + 0.4)
+        fence = (cfg.walls or hard).expanded(0.4)
         ax.set_xlim(fence.min_y, fence.max_y)
         ax.set_ylim(fence.min_x, fence.max_x)
 

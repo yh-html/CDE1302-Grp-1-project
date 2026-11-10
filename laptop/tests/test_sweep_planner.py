@@ -160,3 +160,26 @@ def test_lateral_return_comes_down_the_last_lane_then_sideways_home():
     # every leg, including start -> first and last -> start, is axis-aligned
     legs = zip([(0.0, 0.0), *plan], [*plan, (0.0, 0.0)])
     assert all(abs(a[0] - b[0]) < 1e-9 or abs(a[1] - b[1]) < 1e-9 for a, b in legs)
+
+
+def _cfg_with_walls(walls, clearance=0.5):
+    from mission_config import parse_config
+    return parse_config({
+        "search_area": {"min_x": 0.9, "max_x": 4.65, "min_y": -1.8, "max_y": 1.4},
+        "arena_walls": walls,
+        "mission": {"geofence_margin_m": 0.5, "wall_clearance_m": clearance},
+    })
+
+
+def test_hard_fence_is_kept_clear_of_the_walls():
+    from mission_config import fences
+    hard, soft = fences(_cfg_with_walls({"min_x": -1.5, "max_x": 6.2, "min_y": -2.5, "max_y": 2.5}))
+    assert hard.min_y == pytest.approx(-2.0)        # was -2.3: 0.2 m from the left wall
+    assert hard.max_y == pytest.approx(1.9)         # already > 0.5 m from the right wall
+    assert hard.min_x <= soft.min_x and soft.max_y <= hard.max_y - 0.05 + 1e-9
+
+
+def test_search_area_too_close_to_a_wall_is_rejected():
+    from mission_config import fences
+    with pytest.raises(ValueError, match="wall_clearance_m"):
+        fences(_cfg_with_walls({"min_x": -1.5, "max_x": 6.2, "min_y": -2.0, "max_y": 2.5}))
