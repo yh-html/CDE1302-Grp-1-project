@@ -77,8 +77,15 @@ class TagMission:
                  confirm: Optional[Callable[[], bool]] = None,
                  detect_only: bool = False,
                  detect_duration_s: Optional[float] = None,
-                 truth: Optional[dict[int, tuple[float, float]]] = None) -> None:
+                 truth: Optional[dict[int, tuple[float, float]]] = None,
+                 go_gate: Optional[Callable[[], Optional[str]]] = None,
+                 hold_timeout_s: float = 120.0) -> None:
         self.cfg = cfg
+        # go_gate: polled while hovering at the start after takeoff; returns "go",
+        # "land" or None (no answer yet). None = no hover, sweep straight after takeoff.
+        self._go_gate = go_gate
+        self.hold_timeout_s = hold_timeout_s
+        self._hold_s = 0.0                 # time spent hovering for GO (not counted as search time)
         self.detect_only = detect_only
         self.detect_duration_s = detect_duration_s
         self.truth = dict(truth) if truth else None
@@ -203,7 +210,7 @@ class TagMission:
             if not self.soft_fence.contains(s.x, s.y):
                 raise _StopExploring(f"soft fence: ({s.x:.2f}, {s.y:.2f}) near the boundary, returning")
             tm = self.mlog.mission_time()
-            if tm is not None and tm > self.cfg.max_mission_s:
+            if tm is not None and tm - self._hold_s > self.cfg.max_mission_s:
                 raise _StopExploring(f"mission time limit {self.cfg.max_mission_s:.0f}s")
             exp = self.cfg.expected_tags
             if (self.cfg.stop_when_all_found and exp is not None
@@ -268,6 +275,28 @@ class TagMission:
             self._check_safety(allow_stop=False)
             self.clock.sleep(0.1)
         self.mlog.event("TAKEOFF_WAIT_DONE")
+
+    def _hold_for_go(self) -> None:
+        """Hover over the launch box until the operator types GO (or LAND / timeout)."""
+        self.mlog.event("HOVERING_AT_START", note="type GO + Enter to start the sweep, "
+                                                  "LAND + Enter to land",
+                        timeout_s=self.hold_timeout_s)
+        start = self.clock.now()
+        while True:
+            self._check_safety(allow_stop=False)
+            answer = self._go_gate()
+            waited = self.clock.now() - start
+            if answer == "go":
+                self._hold_s = waited
+                self.mlog.event("GO_RECEIVED", hovered_s=round(waited, 1))
+                return
+            if answer == "land":
+                self._hold_s = waited
+                raise _StopExploring("operator chose LAND while hovering at the start")
+            if waited > self.hold_timeout_s:
+                self._hold_s = waited
+                raise _StopExploring(f"no GO within {self.hold_timeout_s:.0f}s of hovering, landing")
+            self.clock.sleep(0.1)
 
     def _trajectory_points(self):
         """(N,3) array of (x, y, z) offsets and dt_ms for smooth-trajectory mode."""
@@ -428,6 +457,8 @@ class TagMission:
                 return 0
             self._takeoff()
             try:
+                if self._go_gate is not None:
+                    self._hold_for_go()
                 self._explore()
             except _StopExploring as stop:
                 self._stop_reason = str(stop)
@@ -461,6 +492,7 @@ class TagMission:
             "truth_errors": errors,
             "drone_id": self.drone_id, "exit_code": code,
             "exit_reason": self.exit_reason, "search_stopped": self._stop_reason,
+            "hover_for_go_s": round(self._hold_s, 1) if self._go_gate else None,
             "waypoints_planned": len(self.plan), "waypoints_reached": self._reached,
             "waypoints_missed": self._missed,
             "takeoff_cmd_time": events.get("TAKEOFF_CMD_SENT", {}).get("time"),

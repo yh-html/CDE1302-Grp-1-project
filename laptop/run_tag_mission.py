@@ -19,6 +19,9 @@ Examples (from the repo root):
     # Real drone: asks for TAKEOFF-22 before sending the takeoff command
     python laptop/run_tag_mission.py --drone-id 22
 
+    # Same, but hover over the launch box after takeoff until you type GO
+    python laptop/run_tag_mission.py --drone-id 22 --wait-for-go
+
     # Walk-through on the real drone, carried by hand with the props off: prints
     # every tag it localises, sends no takeoff/goto/land command. Ctrl+C ends it.
     # --truth adds each tag's horizontal error against tape-measured positions.
@@ -35,7 +38,9 @@ from __future__ import annotations
 
 import argparse
 import logging
+import queue
 import signal
+import threading
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -74,6 +79,11 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="Measured tag positions in the local frame, e.g. "
                         "'1:1.35,-1.35 2:4.0,-1.35 3:2.7,0.9'. Prints each tag's horizontal "
                         "error at the end.")
+    p.add_argument("--wait-for-go", action="store_true",
+                   help="After takeoff, hover over the launch box and wait: type GO + Enter to "
+                        "start the sweep, LAND + Enter to land. (Ctrl+C still lands at once.)")
+    p.add_argument("--hold-timeout", type=float, default=120.0, metavar="SECONDS",
+                   help="With --wait-for-go: land by itself if no GO after this long (default 120).")
     p.add_argument("--out-dir", help="Override output_dir from the config.")
     p.add_argument("--telem-port", type=int, default=5005)
     p.add_argument("--cmd-port", type=int, default=5006)
@@ -88,6 +98,48 @@ def make_confirm(drone_id: int):
         typed = input(f"Type {word} to send the autonomous takeoff command: ").strip()
         return typed == word
     return confirm
+
+
+def make_go_gate(simulate: bool, clock):
+    """Non-blocking poll for the operator's GO / LAND, typed in this terminal."""
+    if simulate:                       # sim time runs faster than typing: auto-GO after 3 s
+        t0 = []
+
+        def sim_gate():
+            if not t0:
+                t0.append(clock.now())
+                print("(simulator: GO sent automatically after 3 s of hovering)", flush=True)
+            return "go" if clock.now() - t0[0] >= 3.0 else None
+        return sim_gate
+
+    lines: queue.Queue[str] = queue.Queue()
+    started = []
+
+    def reader():
+        while True:
+            try:
+                lines.put(input().strip().upper())
+            except (EOFError, OSError):
+                lines.put("LAND")
+                return
+
+    def gate():
+        if not started:
+            started.append(True)
+            print("\n>>> Hovering over the start box. Type GO + Enter to start the sweep, "
+                  "LAND + Enter to land. <<<\n", flush=True)
+            threading.Thread(target=reader, name="go-input", daemon=True).start()
+        try:
+            cmd = lines.get_nowait()
+        except queue.Empty:
+            return None
+        if cmd in ("GO", "G"):
+            return "go"
+        if cmd in ("LAND", "L"):
+            return "land"
+        print(f"'{cmd}' ignored: type GO or LAND", flush=True)
+        return None
+    return gate
 
 
 def parse_truth(text: str | None) -> dict[int, tuple[float, float]]:
@@ -109,6 +161,8 @@ def main(argv=None) -> int:
     if args.detect_only and args.simulate:
         raise SystemExit("--detect-only needs the real drone: the simulator does not move "
                          "without a takeoff command. Use --simulate on its own for the dry run.")
+    if args.wait_for_go and args.detect_only:
+        raise SystemExit("--wait-for-go is for a flight; --detect-only never takes off.")
     if args.duration is not None and not args.detect_only:
         raise SystemExit("--duration only applies with --detect-only.")
     truth = parse_truth(args.truth)
@@ -162,7 +216,9 @@ def main(argv=None) -> int:
     confirm = None if (args.yes or args.simulate or args.detect_only) else make_confirm(args.drone_id)
     mission = TagMission(cfg, link, clock, mlog, drone_id=args.drone_id, confirm=confirm,
                          detect_only=args.detect_only, detect_duration_s=args.duration,
-                         truth=truth or None)
+                         truth=truth or None,
+                         go_gate=make_go_gate(args.simulate, clock) if args.wait_for_go else None,
+                         hold_timeout_s=args.hold_timeout)
 
     def on_sigint(signum, frame):
         raise KeyboardInterrupt
