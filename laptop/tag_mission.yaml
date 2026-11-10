@@ -46,6 +46,9 @@ detection:
   latency_s: 0.0          # ASSUMED. Delay between the camera frame and the packet; measure it
   update_threshold_m: 0.2 # print TAG_UPDATED when the fused position moves more than this
   expected_tags: 3        # Flying Area PDF: three tags
+  min_frames: 3           # a tag counts as found only after this many distinct camera frames
+                          # (10 Nov flight: tag 2 misread once as 14 ended the sweep early)
+  merge_radius_m: 0.5     # an ID this close to a stronger tag is a misread of it, not a new tag
   stop_when_all_found: false   # true: return as soon as expected_tags are found
 
 mission:

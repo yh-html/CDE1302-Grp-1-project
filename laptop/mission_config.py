@@ -44,6 +44,8 @@ class MissionConfig:
     id_max: int | None
     rescue_margin: float | None
     rescue_max_hamming: int
+    min_frames: int
+    merge_radius_m: float
     cruise_speed_mps: float
     altitude_m: float
     takeoff_wait_s: float
@@ -134,6 +136,8 @@ def parse_config(cfg: dict) -> MissionConfig:
         id_max=(int(det["id_max"]) if det.get("id_max") is not None else None),
         rescue_margin=(float(det["rescue_margin"]) if det.get("rescue_margin") is not None else None),
         rescue_max_hamming=int(_num(det, "rescue_max_hamming", 3, minimum=0)),
+        min_frames=int(_num(det, "min_frames", 3, minimum=1)),
+        merge_radius_m=_num(det, "merge_radius_m", 0.5, minimum=0.0),
         cruise_speed_mps=_num(mis, "cruise_speed_mps", 0.20, positive=True),
         altitude_m=_num(mis, "altitude_m", 0.5, positive=True),
         takeoff_wait_s=_num(mis, "takeoff_wait_s", 12.0, minimum=0.0),

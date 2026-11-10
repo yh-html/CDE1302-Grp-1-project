@@ -51,6 +51,9 @@ detection:
   rescue_margin: 70       # firmware drops tags with hamming>=2 even at high margin; keep them if margin >= this
   rescue_max_hamming: 3
   expected_tags: 3        # Flying Area PDF: three tags
+  min_frames: 3           # a tag counts as found only after this many distinct camera frames
+                          # (10 Nov flight: tag 2 misread once as 14 ended the sweep early)
+  merge_radius_m: 0.5     # an ID this close to a stronger tag is a misread of it, not a new tag
   settle_s: 4.0           # hover this long after the last tag is found, to average more sightings
   stop_when_all_found: true    # true: return as soon as expected_tags are found
 

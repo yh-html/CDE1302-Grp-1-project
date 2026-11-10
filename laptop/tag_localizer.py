@@ -179,6 +179,7 @@ class TagEstimate:
     first_seen_s: Optional[float]
     last_seen_s: Optional[float]
     best_range_m: float
+    n_frames: int = 0             # distinct camera frames (the drone resends each one)
 
 
 @dataclass
@@ -186,13 +187,25 @@ class _Acc:
     obs: list = field(default_factory=list)
     first_s: Optional[float] = None
     last_s: Optional[float] = None
+    frames: set = field(default_factory=set)
 
 
 class TagTracker:
-    """Collects observations per tag ID and fuses them into one position."""
+    """
+    Collects observations per tag ID and fuses them into one position.
 
-    def __init__(self, gate: DetectionGate | None = None) -> None:
+    A tag is CONFIRMED (counts as found) once it has been seen in at least
+    `min_frames` distinct camera frames.  Among confirmed tags, an ID whose
+    position is within `merge_radius_m` of a stronger tag (more frames) is
+    treated as a misread of that tag (tag16h5 IDs differ by few bits) and is
+    not counted.  The defaults (1, 0) keep every accepted tag.
+    """
+
+    def __init__(self, gate: DetectionGate | None = None, min_frames: int = 1,
+                 merge_radius_m: float = 0.0) -> None:
         self.gate = gate or DetectionGate()
+        self.min_frames = max(1, int(min_frames))
+        self.merge_radius_m = max(0.0, float(merge_radius_m))
         self._acc: dict[int, _Acc] = {}
 
     def reject_reason(self, has_pose: bool, pose_err: float,
@@ -211,6 +224,7 @@ class TagTracker:
             return None
         a = self._acc.setdefault(o.tag_id, _Acc())
         a.obs.append(o)
+        a.frames.add(o.frame_ms)
         if a.first_s is None:
             a.first_s = o.t_mission_s
         a.last_s = o.t_mission_s
@@ -229,10 +243,35 @@ class TagTracker:
                   for wi, o in zip(w, a.obs)) / sw
         return TagEstimate(tag_id, x, y, len(a.obs), math.sqrt(var),
                            a.first_s, a.last_s,
-                           min(o.range_m for o in a.obs))
+                           min(o.range_m for o in a.obs), len(a.frames))
 
     def ids(self) -> list[int]:
         return sorted(self._acc)
 
     def estimates(self) -> list[TagEstimate]:
+        """Every accepted tag ID, confirmed or not."""
         return [e for e in (self.estimate(i) for i in self.ids()) if e]
+
+    def _classify(self) -> tuple[list[TagEstimate], list[tuple[TagEstimate, str]]]:
+        strong = [e for e in self.estimates() if e.n_frames >= self.min_frames]
+        weak = [(e, f"only {e.n_frames} camera frame(s), need {self.min_frames}")
+                for e in self.estimates() if e.n_frames < self.min_frames]
+        strong.sort(key=lambda e: (-e.n_frames, -e.n_obs, e.tag_id))
+        kept: list[TagEstimate] = []
+        for e in strong:
+            near = next((k for k in kept
+                         if math.hypot(e.x - k.x, e.y - k.y) < self.merge_radius_m), None)
+            if near is None:
+                kept.append(e)
+            else:
+                weak.append((e, f"{math.hypot(e.x - near.x, e.y - near.y):.2f} m from tag "
+                                f"{near.tag_id} ({near.n_frames} frames): misread of it"))
+        return sorted(kept, key=lambda e: e.tag_id), sorted(weak, key=lambda w: w[0].tag_id)
+
+    def confirmed(self) -> list[TagEstimate]:
+        """Tags that count as found: enough frames, not a duplicate of a stronger tag."""
+        return self._classify()[0]
+
+    def ignored(self) -> list[tuple[TagEstimate, str]]:
+        """Accepted IDs that do not count, with the reason."""
+        return self._classify()[1]

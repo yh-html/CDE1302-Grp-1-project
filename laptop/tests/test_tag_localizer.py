@@ -144,3 +144,41 @@ def test_reject_reasons():
     assert tr.reject_reason(False, -1.0, 1.0) == "no_pose"
     assert tr.reject_reason(True, 0.9, 1.0) == "pose_err"
     assert tr.reject_reason(True, 0.1, 3.5) == "range"
+
+
+def _obs_f(tag_id, x, y, frame_ms, rng=1.0):
+    return Observation("t", 1.0, frame_ms, tag_id, 0, 0, 0, 0, 0, 0, 0, 0, 0, x, y,
+                       rng, 100.0, 0.1, True)
+
+
+def test_tracker_counts_distinct_frames_not_packets():
+    tr = TagTracker(min_frames=3)
+    for _ in range(10):                          # one frame resent 10 times
+        tr.add(_obs_f(14, 1.3, -1.3, frame_ms=500))
+    tr.add(_obs_f(14, 1.3, -1.3, frame_ms=900))
+    assert tr.estimate(14).n_obs == 11 and tr.estimate(14).n_frames == 2
+    assert tr.confirmed() == []
+    assert "only 2 camera frame" in tr.ignored()[0][1]
+    tr.add(_obs_f(14, 1.3, -1.3, frame_ms=1400))
+    assert [e.tag_id for e in tr.confirmed()] == [14]
+
+
+def test_tracker_merges_misread_id_near_stronger_tag():
+    # 10 Nov flight: tag 2 misread as 14 at the same spot -> must not count as a third tag
+    tr = TagTracker(min_frames=3, merge_radius_m=0.5)
+    for f in range(10):
+        tr.add(_obs_f(2, 1.26, -1.45, frame_ms=f))
+    for f in range(100, 104):
+        tr.add(_obs_f(14, 1.36, -1.34, frame_ms=f))
+    for f in range(200, 206):
+        tr.add(_obs_f(4, 2.81, 0.85, frame_ms=f))
+    assert [e.tag_id for e in tr.confirmed()] == [2, 4]
+    (e, why), = tr.ignored()
+    assert e.tag_id == 14 and "misread" in why and "tag 2" in why
+
+
+def test_tracker_defaults_keep_every_tag():
+    tr = TagTracker()
+    tr.add(_obs_f(1, 0, 0, frame_ms=1))
+    tr.add(_obs_f(2, 0.1, 0, frame_ms=1))
+    assert [e.tag_id for e in tr.confirmed()] == [1, 2]

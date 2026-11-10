@@ -95,7 +95,8 @@ class TagMission:
         self.drone_id = drone_id
         self._confirm_fn = confirm
 
-        self.tracker = TagTracker(DetectionGate(cfg.max_pose_err, cfg.max_range_m))
+        self.tracker = TagTracker(DetectionGate(cfg.max_pose_err, cfg.max_range_m),
+                                  min_frames=cfg.min_frames, merge_radius_m=cfg.merge_radius_m)
         self.history = PoseHistory()
         self._lock = threading.Lock()
         self._reported: dict[int, tuple[float, float]] = {}
@@ -161,7 +162,10 @@ class TagMission:
                 self.mlog.observation(obs)
                 est = self.tracker.add(obs)
                 if est is not None:
-                    self._report(est, obs)
+                    # report only tags that count: enough frames, not a misread of another
+                    confirmed = {e.tag_id: e for e in self.tracker.confirmed()}
+                    if est.tag_id in confirmed:
+                        self._report(confirmed[est.tag_id], obs)
 
     def _rescue_translation(self, det):
         """Camera-frame position of a confident tag the firmware gave no pose for.
@@ -187,6 +191,8 @@ class TagMission:
         if last is None:
             self.mlog.event("TAG_DETECTED", id=est.tag_id,
                             x=round(est.x, 2), y=round(est.y, 2),
+                            first_seen_s=None if est.first_seen_s is None else round(est.first_seen_s, 2),
+                            frames=est.n_frames,
                             range_m=round(obs.range_m, 2), cam_xyz_m=rel,
                             frame_ms=obs.frame_ms)
         elif math.hypot(est.x - last[0], est.y - last[1]) > self.cfg.update_threshold_m:
@@ -195,6 +201,11 @@ class TagMission:
         else:
             return
         self._reported[est.tag_id] = (est.x, est.y)
+
+    def _found(self) -> int:
+        """Number of confirmed tags (thread-safe)."""
+        with self._lock:
+            return len(self.tracker.confirmed())
 
     # -- safety ------------------------------------------------------------
 
@@ -214,7 +225,7 @@ class TagMission:
                 raise _StopExploring(f"mission time limit {self.cfg.max_mission_s:.0f}s")
             exp = self.cfg.expected_tags
             if (self.cfg.stop_when_all_found and exp is not None
-                    and len(self.tracker.ids()) >= exp):
+                    and self._found() >= exp):
                 if self.cfg.settle_s <= 0:
                     raise _StopExploring(f"all {exp} expected tags found")
                 if self._all_found_t is None:        # hover and keep averaging sightings
@@ -351,7 +362,7 @@ class TagMission:
                and self.clock.now() < deadline):
             self._check_safety(allow_stop=True)
             self.clock.sleep(0.1)
-        self.mlog.event("TRAJECTORY_END", tags_found=len(self.tracker.ids()))
+        self.mlog.event("TRAJECTORY_END", tags_found=self._found())
 
     def _explore(self) -> None:
         if self.cfg.traj_speed_mps or self.cfg.traj_csv:
@@ -368,7 +379,7 @@ class TagMission:
                 self._reached += 1
                 prev_misses = 0
                 self.mlog.event("WAYPOINT_REACHED", n=f"{i}/{total}",
-                                tags_found=len(self.tracker.ids()))
+                                tags_found=self._found())
             else:
                 self._missed += 1
                 prev_misses += 1
@@ -429,10 +440,10 @@ class TagMission:
                         self.mlog.event("POSITION", x=round(s.x, 2), y=round(s.y, 2),
                                         heading_deg=round(math.degrees(s.heading_rad)),
                                         inside_area=self.fence.contains(s.x, s.y),
-                                        tags_found=len(self.tracker.ids()))
+                                        tags_found=self._found())
                 exp = self.cfg.expected_tags
                 if (self.cfg.stop_when_all_found and exp is not None
-                        and len(self.tracker.ids()) >= exp):
+                        and self._found() >= exp):
                     self.mlog.event("SEARCH_STOPPED", reason=f"all {exp} expected tags found")
                     break
                 self.clock.sleep(0.1)
@@ -449,7 +460,7 @@ class TagMission:
             self.mlog.event("PLAN", detail=self.describe_plan())
             if self.detect_only:
                 self._detect_only()
-                self.mlog.event("DETECT_ONLY_END", tags=len(self.tracker.ids()))
+                self.mlog.event("DETECT_ONLY_END", tags=self._found())
                 return 0
             if self._confirm_fn is not None and not self._confirm_fn():
                 self.exit_reason = "cancelled before takeoff"
@@ -464,7 +475,7 @@ class TagMission:
                 self._stop_reason = str(stop)
                 self.mlog.event("SEARCH_STOPPED", reason=self._stop_reason)
             self._return_and_land()
-            self.mlog.event("MISSION_END", tags=len(self.tracker.ids()))
+            self.mlog.event("MISSION_END", tags=self._found())
         except MissionAbort as exc:
             code = 1
             self._emergency_land(str(exc))
@@ -483,7 +494,9 @@ class TagMission:
         return code
 
     def _finish(self, code: int) -> None:
-        ests = self.tracker.estimates()
+        with self._lock:
+            ests = self.tracker.confirmed()
+            ignored = self.tracker.ignored()
         self.mlog.write_tags(ests)
         events = {e["event"]: e for e in self.mlog.events()}
         errors = truth_errors(ests, self.truth) if self.truth else None
@@ -502,9 +515,15 @@ class TagMission:
             "tags": [{"id": e.tag_id, "x": round(e.x, 3), "y": round(e.y, 3),
                       "sightings": e.n_obs, "spread_m": round(e.spread_m, 3)}
                      for e in ests],
+            "ignored_ids": [{"id": e.tag_id, "x": round(e.x, 3), "y": round(e.y, 3),
+                             "frames": e.n_frames, "reason": why} for e, why in ignored],
         })
         print("\nDetected AprilTags (local frame, origin = takeoff point):", flush=True)
         print(format_tag_table(ests), flush=True)
+        if ignored:
+            print("\nIgnored IDs (not counted as tags):", flush=True)
+            for e, why in ignored:
+                print(f"  {e.tag_id:3d} at ({e.x:5.2f}, {e.y:5.2f}): {why}", flush=True)
         if errors:
             print("\nHorizontal error against the reference positions:", flush=True)
             print(format_truth_table(errors), flush=True)
