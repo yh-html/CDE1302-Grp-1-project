@@ -74,8 +74,21 @@ class MissionConfig:
     traj_slow_after_m: float = 0.05            # ... and ends this far past it
     traj_slow_halfwidth_m: float = 0.3         # ... and this far either side of it (in y)
     tag_spots: tuple[tuple[float, float], ...] = ()   # where tags may be placed (local frame)
+    far_end_back_m: float = 0.0                # lanes end this far short of the far edge
+    avoid_overfly: bool = False                # detour around tag_spots that lie on a lane
+    overfly_before_m: float = 0.20             # in line until this far short of a spot ...
+    overfly_after_m: float = 0.25              # ... back on the lane this far past it ...
+    overfly_side_m: float = 0.45               # ... stepping this far sideways (towards the centre)
     walls: Area | None = None       # arena walls (local frame); fences are kept inside them
     wall_clearance_m: float = 0.5   # nearest the hard geofence may come to a wall
+    # look_again: after a partial sighting (1..min_frames-1 frames) that the rest of the
+    # path will not see again, pause, hover just short of it, then resume. See tag_mission.
+    look_again: bool = False
+    look_trigger_after_s: float = 3.0   # no new sighting of the glimpse for this long ...
+    look_moved_m: float = 0.6           # ... or the drone this far from where it last saw it
+    look_offset_m: float = 0.25         # look point = glimpse - this in x (camera faces +x)
+    look_hover_s: float = 5.0           # hover there this long (ends early once confirmed)
+    look_max: int = 2                   # looks per mission
 
 
 def _num(section: dict, key: str, default: float, positive: bool = False,
@@ -108,6 +121,7 @@ def parse_config(cfg: dict) -> MissionConfig:
     mis = cfg.get("mission", {}) or {}
     sim = cfg.get("simulation", {}) or {}
     traj = cfg.get("trajectory", {}) or {}
+    look = cfg.get("look_again", {}) or {}
 
     walls = None
     w = cfg.get("arena_walls")
@@ -148,6 +162,11 @@ def parse_config(cfg: dict) -> MissionConfig:
         sweep_entry=entry,
         sweep_return=ret,
         lane_offset_m=_num(sweep, "lane_offset_m", 0.0, minimum=0.0),
+        far_end_back_m=_num(sweep, "far_end_back_m", 0.0, minimum=0.0),
+        avoid_overfly=bool(sweep.get("avoid_overfly", False)),
+        overfly_before_m=_num(sweep, "overfly_before_m", 0.20, minimum=0.0),
+        overfly_after_m=_num(sweep, "overfly_after_m", 0.25, minimum=0.0),
+        overfly_side_m=_num(sweep, "overfly_side_m", 0.45, positive=True),
         camera=CameraGeometry(
             pitch_deg=_num(cam, "pitch_deg", 45.0),
             fwd_offset_m=_num(cam, "fwd_offset_m", 0.0),
@@ -201,6 +220,12 @@ def parse_config(cfg: dict) -> MissionConfig:
         tag_spots=tuple((float(p[0]), float(p[1])) for p in (cfg.get("tag_spots") or [])),
         walls=walls,
         wall_clearance_m=_num(mis, "wall_clearance_m", 0.5, minimum=0.0),
+        look_again=bool(look.get("enabled", False)),
+        look_trigger_after_s=_num(look, "trigger_after_s", 3.0, positive=True),
+        look_moved_m=_num(look, "moved_m", 0.6, positive=True),
+        look_offset_m=_num(look, "offset_m", 0.25, minimum=0.0),
+        look_hover_s=_num(look, "hover_s", 5.0, positive=True),
+        look_max=int(_num(look, "max_looks", 2, minimum=0)),
     )
 
 
@@ -257,9 +282,23 @@ def slow_zones(cfg: MissionConfig) -> list[tuple[float, float, float, float]]:
             for sx, sy in cfg.tag_spots]
 
 
-def mission_trajectory(cfg: MissionConfig, plan, start=(0.0, 0.0)):
-    """The (t, x, y) trajectory the mission flies for `plan` (same args everywhere)."""
+def mission_trajectory(cfg: MissionConfig, plan, start=(0.0, 0.0), end=None):
+    """The (t, x, y) trajectory the mission flies for `plan` (same args everywhere).
+    Ends at `end` (default: back at `start`)."""
     from traj_gen import smooth_path
     return smooth_path(plan, start, cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel,
-                       dt=cfg.traj_dt_s, slow_zones=slow_zones(cfg),
+                       dt=cfg.traj_dt_s, end=end, slow_zones=slow_zones(cfg),
                        slow_speed=cfg.traj_slow_speed_mps)
+
+
+def mission_plan(cfg: MissionConfig, start=(0.0, 0.0)):
+    """The sweep waypoints the mission flies (same everywhere: mission, live map, tools)."""
+    from sweep_planner import detour_spots, plan_sweep
+    plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, start, cfg.lane_axis,
+                      cfg.sweep_entry, cfg.sweep_return, lane_offset_m=cfg.lane_offset_m,
+                      far_end_back_m=cfg.far_end_back_m)
+    if cfg.avoid_overfly and cfg.tag_spots and cfg.lane_axis == "x":
+        centre_y = (cfg.area.min_y + cfg.area.max_y) / 2
+        plan = detour_spots([start, *plan, start], cfg.tag_spots, cfg.overfly_before_m,
+                            cfg.overfly_after_m, cfg.overfly_side_m, centre_y)[1:-1]
+    return plan

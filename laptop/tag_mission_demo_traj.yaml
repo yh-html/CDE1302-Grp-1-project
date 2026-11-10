@@ -60,6 +60,17 @@ sweep:
                           # rangefinder could react to). 0.0 = straight over the spots. Up to 0.55
                           # stays inside the soft fence, but keep it small: the camera sees ~0.66 m
                           # either side and the drone drifts ~0.2 m.
+  # Keep the downward rangefinder off every tag spot: a 0.15 m foam block under it made PX4
+  # (height from the rangefinder only, baro off) reject the range data, climb to ~1 m and reset
+  # its position (17:50 flight, PX4 log 67). Blocks and tags can be on any of the 6 spots, so the
+  # path detours round all of them: in line to 0.20 m short of a spot (the camera sees it from
+  # there), 0.45 m sideways towards the centre, past it, back onto the lane after it.
+  far_end_back_m: 0.25    # lanes end 0.25 m short of the far spots (x = 3.80 instead of 4.05)
+  avoid_overfly: true
+  overfly_before_m: 0.25  # 0.08 m clear of a block's back wall (it reaches 0.17 m from the tag); the
+                          # camera sees a boxed tag over a 0.15 m wall only from <= ~0.30 m short at 0.5 m height
+  overfly_after_m: 0.35   # rejoin the lane 0.18 m past the block's far edge
+  overfly_side_m: 0.45
   lane_axis: x            # lanes run along x (forward); "y" runs them sideways
   entry: left             # fly sideways (left) from the start to the first lane, then turn up it.
                           # right = rightmost lane first, lateral = nearest side, direct = old diagonal
@@ -139,9 +150,25 @@ trajectory:
   # fixed, so the camera sees a spot only from just short of it in x, whichever way the lane
   # runs. A tag boxed in by the 0.15 m foam block is visible over the wall only from about
   # 0.3 m short of it: about 2 s at 0.144 m/s (about 4 detections at 2 Hz) vs about 5 s at 0.06 m/s.
-  slow_speed_mps: 0.06    # remove this line to fly at speed_mps everywhere
+  slow_speed_mps: 0.05    # remove this line to fly at speed_mps everywhere
   slow_before_m: 0.45     # slow zone: from this far short of a spot (x) ...
   slow_after_m: 0.05      # ... to this far past it ...
   slow_halfwidth_m: 0.3   # ... and this far either side of it (y)
   dt_s: 0.1              # firmware holds max 2400 points
   # csv: path/to/t_x_y_z.csv   # optional: fly this file instead of the generated sweep
+
+# Look again: when the camera only glimpses something (1-2 frames, or misread IDs at one
+# spot, not near a confirmed tag) and the rest of the path will not bring it back into
+# view, pause the sweep, fly (as a trajectory, so the heading and forward camera stay put)
+# to look_offset_m short of it in x, hover, then rebuild the rest of the sweep from there.
+# Made for the tag boxed in by 0.15 m foam walls: it is visible only from close behind it,
+# so a drifting pass often gets 1-2 frames. Each look costs about 10-20 s.
+# Remove this section (or enabled: false) to fly exactly as before.
+look_again:
+  enabled: true
+  trigger_after_s: 3.0    # look once the glimpse has not been seen for this long ...
+  moved_m: 0.6            # ... or the drone is this far from where it last saw it
+  offset_m: 0.30          # look point = glimpse minus this in x (camera faces +x); 0.30 keeps the
+                          # rangefinder ~0.13 m clear of a 15 cm block's back wall and still sees the whole tag
+  hover_s: 5.0            # hover this long at the look point (ends early once confirmed)
+  max_looks: 2            # per mission; never the same spot twice

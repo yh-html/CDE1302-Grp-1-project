@@ -9,7 +9,7 @@ which also logs tags and returns early.  dt 0.1 keeps the official sweep under t
 import argparse
 from pathlib import Path
 
-from mission_config import load_config
+from mission_config import load_config, mission_plan
 from sweep_planner import plan_sweep
 from traj_gen import smooth_path, stats, write_csv
 
@@ -22,9 +22,7 @@ ap.add_argument("--dt", type=float, default=0.1)
 ap.add_argument("--out", required=True)
 a = ap.parse_args()
 cfg = load_config(a.config)
-plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0), cfg.lane_axis,
-                  cfg.sweep_entry, cfg.sweep_return,
-                  lane_offset_m=cfg.lane_offset_m)
+plan = mission_plan(cfg)
 tr = smooth_path(plan, (0.0, 0.0), a.speed, a.corner, a.accel, dt=a.dt)
 write_csv(a.out, tr)
 s = stats(tr)

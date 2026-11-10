@@ -46,7 +46,7 @@ from datetime import datetime
 from pathlib import Path
 
 from drone_link import RealClock, SimClock, SimLink, UdpLink
-from mission_config import load_config
+from mission_config import load_config, mission_plan
 from mission_log import MissionLog
 from protocol import AT_DEBUG_PORT
 from sweep_planner import (path_length, plan_sweep, suggest_lane_spacing_m,
@@ -169,10 +169,7 @@ def main(argv=None) -> int:
     cfg = load_config(args.config)
 
     if args.plan_only:
-        plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
-                          (0.0, 0.0), cfg.lane_axis,
-                          cfg.sweep_entry, cfg.sweep_return,
-                  lane_offset_m=cfg.lane_offset_m)
+        plan = mission_plan(cfg)
         print(f"Search area: {cfg.area}")
         for i, (x, y) in enumerate(plan, 1):
             print(f"  {i:2d}: x={x:6.2f}  y={y:6.2f}")

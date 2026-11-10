@@ -36,9 +36,9 @@ import threading
 from typing import Callable, Optional
 
 from drone_link import DroneLink
-from mission_config import MissionConfig, fences, mission_trajectory
+from mission_config import MissionConfig, fences, mission_plan, mission_trajectory
 from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
-from protocol import (TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
+from protocol import (TRAJ_CHUNK_PTS, TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
 from sweep_planner import path_length, plan_sweep, square_corner
 from traj_gen import smooth_path, stats as traj_stats
@@ -62,6 +62,15 @@ class _StopExploring(Exception):
 
 class _AllTagsFound(_StopExploring):
     """Search done early because every expected tag was found (a normal finish)."""
+
+
+class _LookAgain(Exception):
+    """Pause the sweep to take a closer look at a partial sighting (see _look_candidate)."""
+
+    def __init__(self, cluster: dict, resume_from: tuple[float, float]) -> None:
+        super().__init__(f"look again at ({cluster['x']:.2f}, {cluster['y']:.2f})")
+        self.cluster = cluster
+        self.resume_from = resume_from
 
 
 class _ReadOnlyLink:
@@ -107,9 +116,7 @@ class TagMission:
         self._reported: dict[int, tuple[float, float]] = {}
 
         self.start_point = (0.0, 0.0)
-        self.plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
-                               self.start_point, cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return,
-                  lane_offset_m=cfg.lane_offset_m)
+        self.plan = mission_plan(cfg, self.start_point)
         # Hard fence: land where it is. Soft fence (just inside it): end the search, hold,
         # fly back to the start and land. Both stay wall_clearance_m inside arena_walls.
         self.fence, self.soft_fence = fences(cfg, self.start_point)
@@ -125,6 +132,17 @@ class TagMission:
         self._stop_reason = ""
         self._all_found_t = None
         self.exit_reason = "completed"
+
+        # look-again state: partial sightings, where we already looked, the current
+        # trajectory (absolute xy samples + start time) and the route it follows
+        self._glimpses: list[tuple] = []     # (t, x, y, tag_id, frame_ms, drone_x, drone_y)
+        self._looked: list[tuple[float, float]] = []
+        self._looks = 0
+        self._route: Optional[list[tuple[float, float]]] = None
+        self._traj_xy = None
+        self._traj_t0: Optional[float] = None
+        self._traj_dt_s = 0.1
+        self._pre: Optional[tuple] = None    # (pts, dt_ms, traj_id) pre-uploaded during takeoff
 
         link.on_telemetry(self._on_telemetry)
         link.on_detection(self._on_detection)
@@ -168,6 +186,8 @@ class TagMission:
                     accepted=not reason, reason=reason,
                     hamming=det.hamming, rescued=rescued)
                 self.mlog.observation(obs)
+                if self.cfg.look_again and (obs.accepted or reason == "pose_err"):
+                    self._glimpses.append((self.clock.now(), lx, ly, det.id, pkt.frame_ms, px, py))
                 est = self.tracker.add(obs)
                 if est is not None:
                     # report only tags that count: enough frames, not a misread of another
@@ -290,10 +310,42 @@ class TagMission:
         self._started = True
         self.mlog.event("TAKEOFF_CMD_SENT", drone=self.drone_id)
         end = self.clock.now() + self.cfg.takeoff_wait_s
+        second_pass = self._preupload_first_pass()
         while self.clock.now() < end:
             self._check_safety(allow_stop=False)
+            if second_pass is not None and self.clock.now() >= second_pass:
+                self._preupload_second_pass()
+                second_pass = None
             self.clock.sleep(0.1)
+        if second_pass is not None:              # takeoff wait shorter than the gap
+            self._preupload_second_pass()
         self.mlog.event("TAKEOFF_WAIT_DONE")
+
+    def _preupload_first_pass(self) -> Optional[float]:
+        """Trajectory mode: send the sweep's chunks while the drone climbs, so GO only
+        needs CMD_TRAJ_START. The firmware stores chunks in any phase (only START is
+        gated on flying in OFFBOARD), and the first burst on a fresh link often loses a
+        chunk, so a second pass with the SAME id fills the gaps (same id + total is not a
+        new upload; the chunks just overwrite). Offsets are relative to wherever the drone
+        is when START arrives (the firmware stores s_traj_org at START), so drift during
+        the hover does not matter. Returns when to send the second pass."""
+        if not (self.cfg.traj_speed_mps or self.cfg.traj_csv):
+            return None
+        import random
+        pts, dt_ms = self._trajectory_points()
+        traj_id = random.randint(1, 255)
+        try:
+            self.link.upload_trajectory(pts, traj_id)
+        except NotImplementedError:
+            return None                          # link cannot split upload / start
+        self._pre = (pts, dt_ms, traj_id)
+        return self.clock.now() + 2.5
+
+    def _preupload_second_pass(self) -> None:
+        pts, dt_ms, traj_id = self._pre
+        self.link.upload_trajectory(pts, traj_id)
+        n_chunks = -(-len(pts) // TRAJ_CHUNK_PTS)
+        self.mlog.event("TRAJECTORY_PREUPLOADED", points=len(pts), chunks=n_chunks, passes=2)
 
     def _hold_for_go(self) -> None:
         """Hover over the launch box until the operator types GO (or LAND / timeout)."""
@@ -317,6 +369,20 @@ class TagMission:
                 raise _StopExploring(f"no GO within {self.hold_timeout_s:.0f}s of hovering, landing")
             self.clock.sleep(0.1)
 
+    def _make_traj(self, points, start, end):
+        """(pts offsets, dt_ms, absolute xy) for start -> points -> end, as the firmware plays it."""
+        import numpy as np
+        dt_ms = round(self.cfg.traj_dt_s * 1000)
+        # dt_s rounded to whole ms, exactly as the firmware will play it
+        tr = mission_trajectory(dataclasses.replace(self.cfg, traj_dt_s=dt_ms / 1000),
+                                list(points), start, end)
+        xy = tr[:, 1:3]
+        pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
+        if len(pts) > TRAJ_MAX_PTS:
+            raise MissionAbort(f"trajectory has {len(pts)} points, firmware limit {TRAJ_MAX_PTS}; "
+                               "raise trajectory.dt_s or speed")
+        return pts, dt_ms, xy
+
     def _trajectory_points(self):
         """(N,3) array of (x, y, z) offsets and dt_ms for smooth-trajectory mode."""
         import numpy as np
@@ -327,11 +393,11 @@ class TagMission:
             t = data[:, 0]
             tq = np.arange(t[0], t[-1] + 1e-9, dt_ms / 1000)
             xy = np.column_stack([np.interp(tq, t, data[:, c]) for c in (1, 2)])
+            self._route = None                  # unknown route: look-again cannot resume
         else:
-            # dt_s rounded to whole ms, exactly as the firmware will play it
-            tr = mission_trajectory(dataclasses.replace(self.cfg, traj_dt_s=dt_ms / 1000),
-                                    self.plan, self.start_point)
-            xy = tr[:, 1:3]
+            _, dt_ms, xy = self._make_traj(self.plan, self.start_point, self.start_point)
+            self._route = [self.start_point, *self.plan, self.start_point]
+        self._traj_xy = xy
         pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
         if len(pts) > TRAJ_MAX_PTS:
             raise MissionAbort(f"trajectory has {len(pts)} points, firmware limit {TRAJ_MAX_PTS}; "
@@ -339,20 +405,56 @@ class TagMission:
         return pts, dt_ms
 
     def _explore_trajectory(self) -> None:
-        pts, dt_ms = self._trajectory_points()
+        if self._pre is not None:
+            pts, dt_ms, pre_id = self._pre       # already on the drone (_preupload_*)
+            self._pre = None
+        else:
+            pts, dt_ms = self._trajectory_points()
+            pre_id = None
         duration = (len(pts) - 1) * dt_ms / 1000
         self.mlog.event("TRAJECTORY_START", points=len(pts), duration_s=round(duration, 1),
-                        source=self.cfg.traj_csv or "generated sweep")
+                        source=self.cfg.traj_csv or "generated sweep",
+                        preuploaded=pre_id is not None)
+        watch = self.cfg.look_again and self._route is not None
         try:
-            self._play_trajectory(pts, dt_ms, duration)
+            while True:
+                try:
+                    self._play_trajectory(pts, dt_ms, duration, xy=self._traj_xy, watch=watch,
+                                          pre_id=pre_id)
+                    return
+                except _LookAgain as la:
+                    self._look(la.cluster)
+                    pts, dt_ms = self._resume_trajectory(la.resume_from)
+                    duration = (len(pts) - 1) * dt_ms / 1000
         except _StopExploring:
             self.link.send_hold()          # nav_cancel: drone hovers where it is
             raise
 
-    def _play_trajectory(self, pts, dt_ms: int, duration: float) -> None:
+    def _play_trajectory(self, pts, dt_ms: int, duration: float, *, xy=None,
+                         watch: bool = False, must_start: bool = True,
+                         log_end: bool = True, pre_id: Optional[int] = None) -> bool:
+        """Upload and play a trajectory until it ends. With watch=True, raise _LookAgain
+        when a partial sighting needs a closer look. Returns False only if it never
+        started and must_start is False. pre_id: the upload is already on the drone
+        under this id, so try a bare START first; if that does not start within 1.5 s,
+        fall back to full uploads (new ids)."""
         started = False
         deadline = self.clock.now() + duration + 15.0
+        if pre_id is not None:
+            self.link.start_trajectory(pre_id, dt_ms)
+            t_end = self.clock.now() + 1.5
+            while self.clock.now() < t_end:
+                self._check_safety(allow_stop=True)
+                if self.link.latest().nav_state == NAV_TRAJ:
+                    started = True
+                    break
+                self.clock.sleep(0.1)
+            if not started:
+                self.mlog.event("TRAJECTORY_PREUPLOAD_NOT_STARTED",
+                                note="falling back to full upload")
         for attempt in range(1, 6):
+            if started:
+                break
             self.link.send_trajectory(pts, dt_ms)
             t_end = self.clock.now() + 1.5
             while self.clock.now() < t_end:
@@ -365,12 +467,147 @@ class TagMission:
                 break
             self.mlog.event("TRAJECTORY_RETRY", attempt=attempt)
         if not started:
+            if not must_start:
+                return False
             raise MissionAbort("drone did not start the trajectory")
+        self._traj_t0, self._traj_dt_s = self.clock.now(), dt_ms / 1000
         while ((self.link.latest().nav_state == NAV_TRAJ or self._all_found_t is not None)
                and self.clock.now() < deadline):
             self._check_safety(allow_stop=True)
+            if watch and xy is not None and self._all_found_t is None:
+                idx = min(len(xy) - 1,
+                          int((self.clock.now() - self._traj_t0) / self._traj_dt_s))
+                cluster = self._look_candidate(xy, idx)
+                if cluster is not None:
+                    self.link.send_hold()
+                    raise _LookAgain(cluster, (float(xy[idx][0]), float(xy[idx][1])))
             self.clock.sleep(0.1)
-        self.mlog.event("TRAJECTORY_END", tags_found=self._found())
+        if log_end:
+            self.mlog.event("TRAJECTORY_END", tags_found=self._found())
+        return True
+
+    # -- look again -----------------------------------------------------------
+
+    def _glimpse_clusters(self) -> list[dict]:
+        """Sightings grouped by floor position (merge_radius_m), skipping any near a
+        confirmed tag: what the camera saw but could not confirm."""
+        r = max(self.cfg.merge_radius_m, 0.1)
+        with self._lock:
+            confirmed = [(e.x, e.y) for e in self.tracker.confirmed()]
+            glimpses = list(self._glimpses)
+        clusters: list[dict] = []
+        for t, x, y, tid, fms, dx, dy in glimpses:
+            if any(math.hypot(x - cx, y - cy) < r for cx, cy in confirmed):
+                continue
+            c = next((c for c in clusters if math.hypot(x - c["x"], y - c["y"]) < r), None)
+            if c is None:
+                c = {"x": x, "y": y, "n": 0, "ids": set(), "frames": set(),
+                     "last_t": t, "last_drone": (dx, dy)}
+                clusters.append(c)
+            c["n"] += 1
+            c["x"] += (x - c["x"]) / c["n"]
+            c["y"] += (y - c["y"]) / c["n"]
+            c["ids"].add(tid)
+            c["frames"].add(fms)
+            if t >= c["last_t"]:
+                c["last_t"], c["last_drone"] = t, (dx, dy)
+        return clusters
+
+    def _look_candidate(self, xy, idx: int) -> Optional[dict]:
+        """A glimpse worth a closer look now: not confirmed, not looked at, not seen for a
+        while (or left behind), and the rest of the planned path will not bring it back
+        into view (the camera only sees a spot from just short of it in x)."""
+        if not self.cfg.look_again or self._looks >= self.cfg.look_max:
+            return None
+        s = self.link.latest()
+        if s is None:
+            return None
+        now = self.clock.now()
+        r = max(self.cfg.merge_radius_m, 0.1)
+        rest = xy[idx:]
+        for c in self._glimpse_clusters():
+            if any(math.hypot(c["x"] - lx, c["y"] - ly) < r for lx, ly in self._looked):
+                continue
+            quiet = now - c["last_t"] >= self.cfg.look_trigger_after_s
+            moved = math.hypot(s.x - c["last_drone"][0],
+                               s.y - c["last_drone"][1]) > self.cfg.look_moved_m
+            if not (quiet or moved):
+                continue
+            ahead = ((rest[:, 0] >= c["x"] - self.cfg.traj_slow_before_m)
+                     & (rest[:, 0] <= c["x"] + self.cfg.traj_slow_after_m)
+                     & (abs(rest[:, 1] - c["y"]) <= 0.2))
+            if ahead.any():
+                continue                    # the path passes it again: let it look then
+            return c
+        return None
+
+    def _cluster_confirmed(self, x: float, y: float) -> Optional[TagEstimate]:
+        r = max(self.cfg.merge_radius_m, 0.1)
+        with self._lock:
+            return next((e for e in self.tracker.confirmed()
+                         if math.hypot(e.x - x, e.y - y) < r), None)
+
+    def _look(self, c: dict) -> None:
+        """Fly (as a trajectory, so the heading and the forward camera stay put) to just
+        short of the glimpse in x, then hover so the camera sees over a boxing wall."""
+        self._looks += 1
+        self._looked.append((c["x"], c["y"]))
+        f = self.soft_fence
+        lx = min(max(c["x"] - self.cfg.look_offset_m, f.min_x + 0.05), f.max_x - 0.05)
+        ly = min(max(c["y"], f.min_y + 0.05), f.max_y - 0.05)
+        self.mlog.event("LOOK_AGAIN_START", n=f"{self._looks}/{self.cfg.look_max}",
+                        x=round(c["x"], 2), y=round(c["y"], 2),
+                        ids=",".join(str(i) for i in sorted(c["ids"])),
+                        frames=len(c["frames"]), look_x=round(lx, 2), look_y=round(ly, 2))
+        t0 = self.clock.now()
+        try:
+            s = self.link.latest()
+            if math.hypot(s.x - lx, s.y - ly) > 0.05:
+                pts, dt_ms, _ = self._make_traj([], (s.x, s.y), (lx, ly))
+                ok = self._play_trajectory(pts, dt_ms, (len(pts) - 1) * dt_ms / 1000,
+                                           must_start=False, log_end=False)
+                if not ok:
+                    self.mlog.event("LOOK_AGAIN_MOVE_FAILED",
+                                    note="trajectory not started; hovering here")
+            t0 = self.clock.now()
+            while (self._cluster_confirmed(c["x"], c["y"]) is None
+                   and self.clock.now() - t0 < self.cfg.look_hover_s):
+                self._check_safety(allow_stop=True)
+                self.clock.sleep(0.1)
+        finally:                       # also when all tags got found mid-look (normal stop)
+            est = self._cluster_confirmed(c["x"], c["y"])
+            self.mlog.event("LOOK_AGAIN_RESULT", confirmed=est is not None,
+                            id=None if est is None else est.tag_id,
+                            frames=None if est is None else est.n_frames,
+                            hovered_s=round(self.clock.now() - t0, 1))
+
+    def _resume_trajectory(self, resume_from: tuple[float, float]):
+        """New trajectory from where the drone is, rejoining the route at the point it was
+        interrupted, then the rest of the route (incl. the squared-off way home)."""
+        import numpy as np
+        route = self._route
+        px, py = resume_from
+        best = None
+        for k in range(len(route) - 1):
+            (ax, ay), (bx, by) = route[k], route[k + 1]
+            vx, vy = bx - ax, by - ay
+            L2 = vx * vx + vy * vy
+            u = 0.0 if L2 < 1e-12 else min(1.0, max(0.0, ((px - ax) * vx + (py - ay) * vy) / L2))
+            qx, qy = ax + u * vx, ay + u * vy
+            d = math.hypot(px - qx, py - qy)
+            if best is None or d < best[0] - 1e-9:
+                best = (d, k, (qx, qy))
+        _, k, q = best
+        s = self.link.latest()
+        cur = (s.x, s.y)
+        rest = [q, *route[k + 1:-1]]
+        pts, dt_ms, xy = self._make_traj(rest, cur, route[-1])
+        self._route = [cur, q, *route[k + 1:]]
+        self._traj_xy = xy
+        duration = (len(pts) - 1) * dt_ms / 1000
+        self.mlog.event("TRAJECTORY_RESUME", points=len(pts), duration_s=round(duration, 1),
+                        rejoin_x=round(q[0], 2), rejoin_y=round(q[1], 2))
+        return np.asarray(pts), dt_ms
 
     def _explore(self) -> None:
         if self.cfg.traj_speed_mps or self.cfg.traj_csv:

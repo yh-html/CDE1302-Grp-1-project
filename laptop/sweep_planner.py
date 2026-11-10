@@ -91,7 +91,7 @@ def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
 def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
                start: Point = (0.0, 0.0), lane_axis: str = "x",
                entry: str = "direct", return_leg: str = "direct",
-               lane_offset_m: float = 0.0) -> list[Point]:
+               lane_offset_m: float = 0.0, far_end_back_m: float = 0.0) -> list[Point]:
     """
     Lawn-mower waypoints covering `area`.
 
@@ -115,6 +115,8 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     lane_offset_m: shift every lane sideways by this much, away from the
       centre of `area` (a lane exactly on the centre line stays put).  Used to
       fly beside known tag spots instead of straight over them.
+    far_end_back_m: end every lane this much short of the far edge (the edge
+      away from `start`), e.g. so the drone stops short of the far tag spots.
     """
     if lane_spacing_m <= 0:
         raise ValueError("lane_spacing_m must be positive")
@@ -146,6 +148,10 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
         return lo + edge_margin_m, hi - edge_margin_m
 
     u_lo, u_hi = shrink(u_lo, u_hi)
+    if far_end_back_m:
+        if far_end_back_m < 0 or u_hi - far_end_back_m <= u_lo:
+            raise ValueError("far_end_back_m must be >= 0 and leave the lanes some length")
+        u_hi -= far_end_back_m
     v_lo, v_hi = shrink(v_lo, v_hi)
     lanes = _lane_positions(v_lo, v_hi, lane_spacing_m)
     if lane_offset_m > 0:
@@ -230,3 +236,40 @@ def suggest_lane_spacing_m(halfwidth_m: float, safety: float = 0.8) -> float:
     """Lane spacing that keeps `safety` x the gap-free maximum (2 x halfwidth)."""
     return 2.0 * halfwidth_m * safety
 
+
+
+def detour_spots(route: list[Point], spots, before_m: float, after_m: float,
+                 side_m: float, centre_y: float, tol_m: float = 0.05) -> list[Point]:
+    """
+    Keep the drone (and its downward rangefinder) off tag spots that lie on an
+    x-direction leg of `route`: approach in line to `before_m` short of the spot
+    (the camera faces +x and sees the spot from there), step `side_m` sideways
+    towards `centre_y`, pass the spot, step back onto the leg `after_m` past it.
+    A 0.15 m foam block around a tag under the rangefinder made PX4 (height from
+    the rangefinder only) reject the range data and reset its position (10 Nov).
+
+    Collinear waypoints are merged first, so a waypoint sitting on a spot does
+    not hide it. Spots at a leg's ends are left alone (keep lanes short of them).
+    """
+    pts = [route[0]]
+    for p in route[1:]:                            # merge collinear x-legs
+        if (len(pts) >= 2 and abs(pts[-2][1] - pts[-1][1]) < 1e-9
+                and abs(pts[-1][1] - p[1]) < 1e-9
+                and (pts[-1][0] - pts[-2][0]) * (p[0] - pts[-1][0]) > 0):
+            pts[-1] = p
+        else:
+            pts.append(p)
+    out = [pts[0]]
+    for a, b in zip(pts, pts[1:]):
+        if abs(a[1] - b[1]) < 1e-9 and abs(b[0] - a[0]) > 1e-9:
+            y, sgn = a[1], (1.0 if b[0] > a[0] else -1.0)
+            lo, hi = min(a[0], b[0]), max(a[0], b[0])
+            on = sorted((sx for sx, sy in spots if abs(sy - y) <= tol_m
+                         and lo + before_m < sx < hi - after_m
+                         and lo + after_m < sx < hi - before_m), key=lambda sx: sgn * sx)
+            ys = y + side_m * (1.0 if centre_y > y else -1.0)
+            for sx in on:
+                x_in, x_out = (sx - before_m, sx + after_m) if sgn > 0 else (sx + after_m, sx - before_m)
+                out += [(x_in, y), (x_in, ys), (x_out, ys), (x_out, y)]
+        out.append(b)
+    return out
