@@ -65,8 +65,10 @@ sweep:
   # its position (17:50 flight, PX4 log 67). Blocks and tags can be on any of the 6 spots, so the
   # path detours round all of them: in line to 0.20 m short of a spot (the camera sees it from
   # there), 0.45 m sideways towards the centre, past it, back onto the lane after it.
-  far_end_back_m: 0.25    # lanes end 0.25 m short of the far spots (x = 3.80 instead of 4.05)
-  avoid_overfly: true
+  far_end_back_m: 0.0     # (0.25 with avoid_overfly) lanes end this far short of the far spots
+  avoid_overfly: false    # OFF since 10 Nov: PX4 now has EKF2_BARO_CTRL=1, EKF2_RNG_NOISE=0.05 and a
+                          # hover + manual pass over the block was clean. Flying straight over the
+                          # spots finds a boxed tag far better (sim 34/36 vs 26/36). Set true to detour.
   overfly_before_m: 0.25  # 0.08 m clear of a block's back wall (it reaches 0.17 m from the tag); the
                           # camera sees a boxed tag over a 0.15 m wall only from <= ~0.30 m short at 0.5 m height
   overfly_after_m: 0.35   # rejoin the lane 0.18 m past the block's far edge
@@ -150,7 +152,7 @@ trajectory:
   # fixed, so the camera sees a spot only from just short of it in x, whichever way the lane
   # runs. A tag boxed in by the 0.15 m foam block is visible over the wall only from about
   # 0.3 m short of it: about 2 s at 0.144 m/s (about 4 detections at 2 Hz) vs about 5 s at 0.06 m/s.
-  slow_speed_mps: 0.05    # remove this line to fly at speed_mps everywhere
+  slow_speed_mps: 0.06    # remove this line to fly at speed_mps everywhere
   slow_before_m: 0.45     # slow zone: from this far short of a spot (x) ...
   slow_after_m: 0.05      # ... to this far past it ...
   slow_halfwidth_m: 0.3   # ... and this far either side of it (y)
