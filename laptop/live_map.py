@@ -35,6 +35,7 @@ import csv
 import io
 import json
 import math
+import select
 import socket
 import threading
 import time
@@ -45,7 +46,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Polygon, Rectangle
 
-from mission_config import fences, load_config
+from mission_config import fences, load_config, mission_trajectory
 from sweep_planner import plan_sweep
 from traj_gen import smooth_path
 
@@ -138,7 +139,8 @@ def camera_footprint(cfg, x: float, y: float, heading: float) -> np.ndarray | No
 def planned_path(cfg) -> tuple[np.ndarray, np.ndarray]:
     """(path xy, waypoint xy) in the local frame."""
     plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0), cfg.lane_axis,
-                  cfg.sweep_entry, cfg.sweep_return)
+                  cfg.sweep_entry, cfg.sweep_return,
+                  lane_offset_m=cfg.lane_offset_m)
     wps = np.array(plan) if plan else np.zeros((0, 2))
     if cfg.traj_csv:
         p = Path(cfg.traj_csv)
@@ -149,7 +151,7 @@ def planned_path(cfg) -> tuple[np.ndarray, np.ndarray]:
         xy = data[:, 1:3] - data[0, 1:3]
         return xy, np.zeros((0, 2))
     if cfg.traj_speed_mps:
-        tr = smooth_path(plan, (0.0, 0.0), cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel)
+        tr = mission_trajectory(cfg, plan)
         return tr[:, 1:3], wps
     return np.vstack([[0.0, 0.0], wps, [0.0, 0.0]]), wps
 
@@ -160,26 +162,40 @@ class CameraFeed:
     the newest decoded frame. Same wire format and keepalive as camera_stream.py.
     The mission never listens on 5009, so this does not touch the mission's link;
     the firmware detects tags on a copy of the frame while the preview is on.
+
+    Self-healing: the receive loop never dies on a bad packet or decode error
+    (it counts them), keepalives go out every KEEPALIVE_S whatever happens, the
+    loop is restarted if it ever exits, and after a gap the half-built frames
+    are discarded so the next complete frame shows at once. The firmware stops
+    streaming 2.5 s after the last keepalive (main/wifi_task.c,
+    CAMERA_STREAM_TIMEOUT_MS), so sending every 0.5 s rides out four lost
+    keepalives in a row.
     """
 
-    def __init__(self, esp_ip: str, fps: int, quality: int) -> None:
+    KEEPALIVE_S = 0.5           # firmware keeps streaming for 2.5 s after the last one
+    GAP_S = 1.5                 # no frame for this long = shown as a gap on the panel
+
+    def __init__(self, esp_ip: str, fps: int, quality: int, *,
+                 stream_port: int | None = None, command_port: int | None = None) -> None:
         import cv2                                            # only needed with a camera
-        from camera_stream import COMMAND_PORT, KEEPALIVE_S, FrameAssembler, drain_socket
+        from camera_stream import COMMAND_PORT, FrameAssembler, drain_socket
         from protocol import CAMERA_STREAM_PORT, build_camera_stream_command
-        self._cv2, self._drain, self._keep_s = cv2, drain_socket, KEEPALIVE_S
+        self._cv2, self._drain = cv2, drain_socket
         self.esp_ip = socket.gethostbyname(esp_ip)
-        self._target = (self.esp_ip, COMMAND_PORT)
+        self._target = (self.esp_ip, command_port or COMMAND_PORT)
         self._on = build_camera_stream_command(True, fps, quality)
         self._off = build_camera_stream_command(False)
         self._asm = FrameAssembler()
         self._rx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._rx.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)
+        port = stream_port or CAMERA_STREAM_PORT
         try:
-            self._rx.bind(("0.0.0.0", CAMERA_STREAM_PORT))
+            self._rx.bind(("0.0.0.0", port))
         except OSError as exc:
-            raise SystemExit(f"Cannot listen on UDP {CAMERA_STREAM_PORT} (is camera_stream.py or "
+            raise SystemExit(f"Cannot listen on UDP {port} (is camera_stream.py or "
                              f"tag_stream.py already open?): {exc}")
         self._rx.setblocking(False)
+        # Own unbound socket: an ephemeral source port, never 5005/5006/5008 on this laptop.
         self._tx = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._lock = threading.Lock()
         self._img = None
@@ -188,61 +204,117 @@ class CameraFeed:
         self._last_rx = None
         self._shown = 0
         self._fps = 0.0
+        self.frames = 0                   # decoded frames since start
+        self.keepalives = 0               # keepalives sent
+        self.errors = 0                   # packets / frames that could not be used
+        self.gaps = 0                     # times the video stopped for > GAP_S
+        self.restarts = 0                 # receive loop restarted after an unexpected exit
+        self.last_error = ""
+        self._in_gap = False
         self._running = True
+        self._thread = None
+        self._start_thread()
+
+    def _start_thread(self) -> None:
         self._thread = threading.Thread(target=self._loop, name="camera-feed", daemon=True)
         self._thread.start()
 
-    def _loop(self) -> None:
-        import select
+    def _note_error(self, exc: BaseException) -> None:
+        with self._lock:
+            self.errors += 1
+            self.last_error = f"{type(exc).__name__}: {exc}"[:80]
+
+    def _send_keepalive(self) -> None:
+        try:
+            self._tx.sendto(self._on, self._target)
+            self.keepalives += 1
+        except OSError as exc:                                # drone off / WiFi down: retry
+            self._note_error(exc)
+
+    def _decode(self, jpeg: bytes):
         cv2 = self._cv2
+        try:
+            return cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_GRAYSCALE)
+        except cv2.error as exc:                              # corrupt JPEG: skip this frame
+            self._note_error(exc)
+            return None
+
+    def _step(self, next_keep: float) -> float:
+        now = time.monotonic()
+        if now >= next_keep:
+            next_keep = now + self.KEEPALIVE_S
+            self._send_keepalive()
+        try:
+            select.select([self._rx], [], [], 0.05)
+            frame, _, _ = self._drain(self._rx, self._asm, self.esp_ip)
+        except OSError as exc:                                # e.g. WSAECONNRESET on Windows
+            self._note_error(exc)
+            frame = None
+        if frame is not None:
+            gray = self._decode(frame.jpeg)
+            with self._lock:
+                if gray is None:
+                    self.errors += 1
+                else:
+                    self._img = gray
+                    self._frame_id, self._age_ms = frame.frame_id, frame.age_ms
+                    self._last_rx = time.monotonic()
+                    self._shown += 1
+                    self.frames += 1
+                    self._in_gap = False
+        now = time.monotonic()
+        self._asm.expire(now)
+        with self._lock:
+            if (self._last_rx is not None and now - self._last_rx > self.GAP_S
+                    and not self._in_gap):
+                self._in_gap = True
+                self.gaps += 1
+                self._asm.pending.clear()                     # stale half-frames: start fresh
+        return next_keep
+
+    def _loop(self) -> None:
         next_keep = stats_t = time.monotonic()
         while self._running:
-            now = time.monotonic()
-            if now >= next_keep:
-                next_keep = now + self._keep_s
-                try:
-                    self._tx.sendto(self._on, self._target)
-                except OSError:
-                    pass                                      # drone off / WiFi down: retry
-            select.select([self._rx], [], [], 0.05)
             try:
-                frame, _, _ = self._drain(self._rx, self._asm, self.esp_ip)
-            except OSError:
-                frame = None
-            if frame is not None:
-                gray = cv2.imdecode(np.frombuffer(frame.jpeg, np.uint8), cv2.IMREAD_GRAYSCALE)
-                if gray is not None:
+                next_keep = self._step(next_keep)
+                now = time.monotonic()
+                if now - stats_t >= 1.0:
                     with self._lock:
-                        self._img = gray
-                        self._frame_id, self._age_ms = frame.frame_id, frame.age_ms
-                        self._last_rx = time.monotonic()
-                        self._shown += 1
-            self._asm.expire(time.monotonic())
-            if now - stats_t >= 2.0:
-                with self._lock:
-                    self._fps, self._shown = self._shown / (now - stats_t), 0
-                stats_t = now
+                        self._fps, self._shown = self._shown / (now - stats_t), 0
+                    stats_t = now
+            except Exception as exc:                          # noqa: BLE001 - keep the feed alive
+                self._note_error(exc)
+                time.sleep(0.1)
 
     def latest(self) -> tuple[np.ndarray | None, str]:
+        if self._running and (self._thread is None or not self._thread.is_alive()):
+            self.restarts += 1                                # should not happen; heal anyway
+            self._start_thread()
         with self._lock:
             img = self._img
+            err = f"  err {self.errors}" if self.errors else ""
             if self._last_rx is None:
-                return None, f"waiting for video from {self.esp_ip}..."
+                return None, (f"waiting for video from {self.esp_ip} "
+                              f"(keepalives sent: {self.keepalives}){err}")
             stale = time.monotonic() - self._last_rx
-            info = (f"#{self._frame_id}  {self._fps:4.1f} fps  esp {self._age_ms} ms  "
-                    f"drops {self._asm.dropped}")
-            if stale > 1.5:
-                info += f"\n!! no video for {stale:.0f} s"
+            fps = self._fps if stale <= self.GAP_S else 0.0
+            info = (f"#{self._frame_id}  {fps:4.1f} fps  esp {self._age_ms} ms  "
+                    f"drops {self._asm.dropped}  gaps {self.gaps}{err}")
+            if stale > self.GAP_S:
+                info += (f"\n!! no video for {stale:.0f} s - still asking "
+                         f"(drone off / out of WiFi?)")
             return img, info
 
     def close(self) -> None:
         self._running = False
-        self._thread.join(timeout=1.0)
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
         try:
             self._tx.sendto(self._off, self._target)
         except OSError:
             pass
         self._rx.close()
+        self._tx.close()
 
 
 class LiveMap:
@@ -522,9 +594,9 @@ def main(argv=None) -> int:
     cam.add_argument("--drone-id", type=int,
                      help="Show the camera of this drone (IP 192.168.1.(200 + id)).")
     cam.add_argument("--esp-ip", help="Drone IP for the camera, instead of --drone-id.")
-    cam.add_argument("--cam-fps", type=int, default=8,
-                     help="Video frame rate asked of the drone, 1-15 (default 8).")
-    cam.add_argument("--cam-quality", type=int, default=50, help="JPEG quality 10-90 (default 50).")
+    cam.add_argument("--cam-fps", type=int, default=6,
+                     help="Video frame rate asked of the drone, 1-15 (default 6, light on WiFi).")
+    cam.add_argument("--cam-quality", type=int, default=45, help="JPEG quality 10-90 (default 45).")
     args = p.parse_args(argv)
 
     cfg = load_config(args.config)

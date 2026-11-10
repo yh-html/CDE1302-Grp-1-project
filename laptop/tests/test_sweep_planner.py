@@ -183,3 +183,27 @@ def test_search_area_too_close_to_a_wall_is_rejected():
     from mission_config import fences
     with pytest.raises(ValueError, match="wall_clearance_m"):
         fences(_cfg_with_walls({"min_x": -1.5, "max_x": 6.2, "min_y": -2.0, "max_y": 2.5}))
+
+
+def _pdf_lanes(offset):
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 2.25, 0.45, (0.0, 0.0), "x",
+                      entry="left", return_leg="lateral", lane_offset_m=offset)
+    return plan, sorted({round(y, 6) for x, y in plan if x > 1.0})
+
+
+def test_pdf_two_lanes_sit_on_the_tag_rows():
+    plan, lanes = _pdf_lanes(0.0)
+    assert lanes == pytest.approx([-1.35, 0.90])
+    assert sorted({round(x, 6) for x, _ in plan if x > 0}) == pytest.approx([1.35, 4.05])
+
+
+def test_lane_offset_moves_lanes_away_from_the_centre():
+    _, lanes = _pdf_lanes(0.3)
+    assert lanes == pytest.approx([-1.65, 1.20])
+
+
+def test_lane_offset_keeps_a_centre_lane_in_place():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.0, 2.0, -1.0, 1.0), 1.0, 0.0, (0.0, 0.0), "x", lane_offset_m=0.2)
+    assert sorted({round(y, 6) for _, y in plan}) == pytest.approx([-1.2, 0.0, 1.2])

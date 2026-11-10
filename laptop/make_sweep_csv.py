@@ -23,7 +23,8 @@ ap.add_argument("--out", required=True)
 a = ap.parse_args()
 cfg = load_config(a.config)
 plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0), cfg.lane_axis,
-                  cfg.sweep_entry, cfg.sweep_return)
+                  cfg.sweep_entry, cfg.sweep_return,
+                  lane_offset_m=cfg.lane_offset_m)
 tr = smooth_path(plan, (0.0, 0.0), a.speed, a.corner, a.accel, dt=a.dt)
 write_csv(a.out, tr)
 s = stats(tr)

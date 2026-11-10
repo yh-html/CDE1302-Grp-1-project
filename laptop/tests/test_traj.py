@@ -34,3 +34,31 @@ def test_load_trajectory_resamples_relative_to_first_point(tmp_path) -> None:
     assert pts.shape == (5, 3)
     assert abs(pts[1][0] - 0.05) < 1e-9 and abs(pts[-1][0] - 0.2) < 1e-9
     assert not pts[0].any()
+
+
+def test_slow_zones_cap_speed_inside_and_keep_accel_limit() -> None:
+    import numpy as np
+    from traj_gen import smooth_path
+    pts = [(4.0, 0.0)]
+    zone = (1.5, 2.0, -0.3, 0.3)
+    tr = smooth_path(pts, (0.0, 0.0), speed=0.15, accel=0.08, dt=0.05,
+                     end=(4.0, 0.0), slow_zones=[zone], slow_speed=0.05)
+    t, x, y = tr.T
+    v = np.hypot(np.diff(x), np.diff(y)) / np.diff(t)
+    xm = (x[1:] + x[:-1]) / 2
+    inside = (xm > zone[0] + 0.02) & (xm < zone[1] - 0.02)
+    assert v[inside].max() <= 0.05 + 1e-3
+    assert v[xm > 3.0].max() > 0.12                       # speeds up again after the zone
+    # braking stays near the accel limit (speed averaged over 1 s, so sampling noise cancels)
+    w = 20
+    v1 = np.hypot(x[w:] - x[:-w], y[w:] - y[:-w]) / (t[w:] - t[:-w])
+    a = np.diff(v1[::w]) / 1.0
+    assert np.abs(a).max() <= 0.08 * 1.3
+
+
+def test_no_slow_zones_gives_the_same_path_as_before() -> None:
+    import numpy as np
+    from traj_gen import smooth_path
+    a = smooth_path([(2.0, 1.0)], (0.0, 0.0), speed=0.12)
+    b = smooth_path([(2.0, 1.0)], (0.0, 0.0), speed=0.12, slow_zones=[], slow_speed=0.05)
+    assert np.allclose(a, b)

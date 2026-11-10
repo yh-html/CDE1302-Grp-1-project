@@ -77,10 +77,15 @@ def _curvature(xy: np.ndarray, ds: float) -> np.ndarray:
 def smooth_path(points: list[Point], start: Point = (0.0, 0.0), speed: float = 0.12,
                 corner_radius_m: float = 0.35, accel: float = 0.08,
                 lat_accel: float = 0.08, dt: float = 0.05,
-                end: Point | None = None) -> np.ndarray:
+                end: Point | None = None,
+                slow_zones: list[tuple[float, float, float, float]] | None = None,
+                slow_speed: float | None = None) -> np.ndarray:
     """
     Timed smooth path start -> points... -> end (default: back to start).
     Returns an (N, 3) array of t, x, y sampled every `dt` seconds.
+
+    slow_zones: (min_x, max_x, min_y, max_y) boxes where the speed is capped at
+    slow_speed; the drone brakes before and speeds up after each box at `accel`.
     """
     if speed <= 0 or accel <= 0 or lat_accel <= 0 or dt <= 0:
         raise ValueError("speed, accel, lat_accel and dt must be positive")
@@ -103,6 +108,19 @@ def smooth_path(points: list[Point], start: Point = (0.0, 0.0), speed: float = 0
     kern = np.ones(k) / k
     vp = np.pad(v, (k // 2, k // 2), mode="edge")
     v = np.maximum(np.convolve(vp, kern, mode="valid"), 0.02)
+    if slow_zones and slow_speed:
+        if slow_speed <= 0:
+            raise ValueError("slow_speed must be positive")
+        inside = np.zeros(len(s), dtype=bool)
+        for x0, x1, y0, y1 in slow_zones:
+            inside |= ((xy[:, 0] >= x0) & (xy[:, 0] <= x1) & (xy[:, 1] >= y0) & (xy[:, 1] <= y1))
+        # applied after the smoothing, so the cap holds right up to the zone edges
+        v = np.where(inside, np.minimum(v, slow_speed), v)
+        # brake into / accelerate out of the zones at `accel` (forward + backward pass)
+        for i in range(1, len(v)):
+            v[i] = min(v[i], math.sqrt(v[i - 1] ** 2 + 2 * accel * ds))
+        for i in range(len(v) - 2, -1, -1):
+            v[i] = min(v[i], math.sqrt(v[i + 1] ** 2 + 2 * accel * ds))
 
     # time at each arclength sample: dt_i = ds / v_mid
     vmid = 0.5 * (v[1:] + v[:-1])

@@ -30,12 +30,13 @@ Pass truth={tag_id: (x, y)} to get the horizontal error of each tag at the end.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 import threading
 from typing import Callable, Optional
 
 from drone_link import DroneLink
-from mission_config import MissionConfig, fences
+from mission_config import MissionConfig, fences, mission_trajectory
 from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
 from protocol import (TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
@@ -107,7 +108,8 @@ class TagMission:
 
         self.start_point = (0.0, 0.0)
         self.plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
-                               self.start_point, cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return)
+                               self.start_point, cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return,
+                  lane_offset_m=cfg.lane_offset_m)
         # Hard fence: land where it is. Soft fence (just inside it): end the search, hold,
         # fly back to the start and land. Both stay wall_clearance_m inside arena_walls.
         self.fence, self.soft_fence = fences(cfg, self.start_point)
@@ -326,9 +328,9 @@ class TagMission:
             tq = np.arange(t[0], t[-1] + 1e-9, dt_ms / 1000)
             xy = np.column_stack([np.interp(tq, t, data[:, c]) for c in (1, 2)])
         else:
-            tr = smooth_path(self.plan, self.start_point, self.cfg.traj_speed_mps,
-                             self.cfg.traj_corner_m, self.cfg.traj_accel,
-                             dt=dt_ms / 1000)
+            # dt_s rounded to whole ms, exactly as the firmware will play it
+            tr = mission_trajectory(dataclasses.replace(self.cfg, traj_dt_s=dt_ms / 1000),
+                                    self.plan, self.start_point)
             xy = tr[:, 1:3]
         pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
         if len(pts) > TRAJ_MAX_PTS:

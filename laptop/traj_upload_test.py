@@ -22,6 +22,7 @@ complete". Results + full log are saved to laptop/mission_logs/traj_upload_test.
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import sys
 import threading
 import time
@@ -32,7 +33,7 @@ sys.path.insert(0, str(HERE))
 
 import drone_link                                    # noqa: E402
 from comms import CommsNode                           # noqa: E402
-from mission_config import load_config                # noqa: E402
+from mission_config import load_config, mission_trajectory   # noqa: E402
 from protocol import build_traj_packets               # noqa: E402
 from sweep_planner import plan_sweep                  # noqa: E402
 from traj_gen import smooth_path                      # noqa: E402
@@ -56,10 +57,10 @@ def main() -> int:
     if not cfg.traj_speed_mps:
         raise SystemExit("config has trajectory.enabled false; nothing to upload")
     plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0),
-                      cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return)
+                      cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return,
+                  lane_offset_m=cfg.lane_offset_m)
     dt_ms = round(cfg.traj_dt_s * 1000)
-    tr = smooth_path(plan, (0.0, 0.0), cfg.traj_speed_mps, cfg.traj_corner_m,
-                     cfg.traj_accel, dt=dt_ms / 1000)
+    tr = mission_trajectory(dataclasses.replace(cfg, traj_dt_s=dt_ms / 1000), plan)
     xy = tr[:, 1:3] - tr[0, 1:3]
     pts = [(float(x), float(y), 0.0) for x, y in xy]
 

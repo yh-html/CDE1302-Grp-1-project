@@ -90,7 +90,8 @@ def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
 
 def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
                start: Point = (0.0, 0.0), lane_axis: str = "x",
-               entry: str = "direct", return_leg: str = "direct") -> list[Point]:
+               entry: str = "direct", return_leg: str = "direct",
+               lane_offset_m: float = 0.0) -> list[Point]:
     """
     Lawn-mower waypoints covering `area`.
 
@@ -111,6 +112,9 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
       "lateral" - carry on along the last lane until level with `start`, then
                   fly across the lanes to it.  Adds one waypoint at the end
                   (the mission's return-to-start leg is then the sideways one).
+    lane_offset_m: shift every lane sideways by this much, away from the
+      centre of `area` (a lane exactly on the centre line stays put).  Used to
+      fly beside known tag spots instead of straight over them.
     """
     if lane_spacing_m <= 0:
         raise ValueError("lane_spacing_m must be positive")
@@ -124,6 +128,8 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
         raise ValueError("entry 'left'/'right' needs lane_axis 'x'")
     if return_leg not in ("direct", "lateral"):
         raise ValueError("return_leg must be 'direct' or 'lateral'")
+    if lane_offset_m < 0:
+        raise ValueError("lane_offset_m must be non-negative")
 
     # Work in (u, v): u runs along a lane, v steps between lanes.
     if lane_axis == "x":
@@ -142,6 +148,10 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     u_lo, u_hi = shrink(u_lo, u_hi)
     v_lo, v_hi = shrink(v_lo, v_hi)
     lanes = _lane_positions(v_lo, v_hi, lane_spacing_m)
+    if lane_offset_m > 0:
+        centre = (v_lo + v_hi) / 2
+        lanes = [v if abs(v - centre) < 1e-9
+                 else v + math.copysign(lane_offset_m, v - centre) for v in lanes]
 
     best: list[Point] | None = None
     best_cost = math.inf

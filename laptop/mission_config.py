@@ -34,6 +34,7 @@ class MissionConfig:
     lane_axis: str
     sweep_entry: str
     sweep_return: str
+    lane_offset_m: float
     camera: CameraGeometry
     max_pose_err: float
     max_range_m: float
@@ -68,6 +69,11 @@ class MissionConfig:
     traj_accel: float = 0.08
     traj_dt_s: float = 0.1
     traj_csv: str | None = None     # fly this t,x,y,z CSV instead of generating the sweep
+    traj_slow_speed_mps: float | None = None   # speed where a tag spot is in camera view
+    traj_slow_before_m: float = 0.45           # slow zone starts this far short of a spot (in x)
+    traj_slow_after_m: float = 0.05            # ... and ends this far past it
+    traj_slow_halfwidth_m: float = 0.3         # ... and this far either side of it (in y)
+    tag_spots: tuple[tuple[float, float], ...] = ()   # where tags may be placed (local frame)
     walls: Area | None = None       # arena walls (local frame); fences are kept inside them
     wall_clearance_m: float = 0.5   # nearest the hard geofence may come to a wall
 
@@ -141,6 +147,7 @@ def parse_config(cfg: dict) -> MissionConfig:
         lane_axis=lane_axis,
         sweep_entry=entry,
         sweep_return=ret,
+        lane_offset_m=_num(sweep, "lane_offset_m", 0.0, minimum=0.0),
         camera=CameraGeometry(
             pitch_deg=_num(cam, "pitch_deg", 45.0),
             fwd_offset_m=_num(cam, "fwd_offset_m", 0.0),
@@ -186,6 +193,12 @@ def parse_config(cfg: dict) -> MissionConfig:
         traj_accel=_num(traj, "accel_mps2", 0.08, positive=True),
         traj_dt_s=_num(traj, "dt_s", 0.1, positive=True),
         traj_csv=(str(traj["csv"]) if traj.get("csv") else None),
+        traj_slow_speed_mps=(_num(traj, "slow_speed_mps", 0.06, positive=True)
+                             if traj.get("slow_speed_mps") is not None else None),
+        traj_slow_before_m=_num(traj, "slow_before_m", 0.45, minimum=0.0),
+        traj_slow_after_m=_num(traj, "slow_after_m", 0.05, minimum=0.0),
+        traj_slow_halfwidth_m=_num(traj, "slow_halfwidth_m", 0.3, positive=True),
+        tag_spots=tuple((float(p[0]), float(p[1])) for p in (cfg.get("tag_spots") or [])),
         walls=walls,
         wall_clearance_m=_num(mis, "wall_clearance_m", 0.5, minimum=0.0),
     )
@@ -226,3 +239,27 @@ def load_config(path: str | Path) -> MissionConfig:
         raise FileNotFoundError(f"mission config not found: {p}")
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     return parse_config(data)
+
+
+def slow_zones(cfg: MissionConfig) -> list[tuple[float, float, float, float]]:
+    """
+    Boxes (min_x, max_x, min_y, max_y) where the camera can see a tag spot.
+
+    In trajectory mode the drone keeps its takeoff heading (+x), and the camera looks
+    forward and 45 deg down, so a spot is in view only while the drone is a little
+    short of it in x, whichever way the lane runs. A tag boxed in by a 0.15 m block
+    is visible over the wall only from about 0.3 m short of it.
+    """
+    if not cfg.traj_slow_speed_mps:
+        return []
+    return [(sx - cfg.traj_slow_before_m, sx + cfg.traj_slow_after_m,
+             sy - cfg.traj_slow_halfwidth_m, sy + cfg.traj_slow_halfwidth_m)
+            for sx, sy in cfg.tag_spots]
+
+
+def mission_trajectory(cfg: MissionConfig, plan, start=(0.0, 0.0)):
+    """The (t, x, y) trajectory the mission flies for `plan` (same args everywhere)."""
+    from traj_gen import smooth_path
+    return smooth_path(plan, start, cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel,
+                       dt=cfg.traj_dt_s, slow_zones=slow_zones(cfg),
+                       slow_speed=cfg.traj_slow_speed_mps)
