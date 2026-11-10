@@ -1,0 +1,12 @@
+time,t_mission_s,event,details
+2026-11-10T17:50:44.342+08:00,,WAITING_FOR_TELEMETRY,"{""drone"": 1}"
+2026-11-10T17:50:44.346+08:00,,LINK_ESTABLISHED,"{""drone"": 1, ""x"": -0.0, ""y"": 0.0, ""heading_rad"": 0.0}"
+2026-11-10T17:50:44.346+08:00,,PLAN,"{""detail"": ""search area x[0.9,4.65] y[-1.8,1.4] m, 10 waypoints, 20.2 m flown incl. return, about 101s at 0.2 m/s""}"
+2026-11-10T17:50:48.247+08:00,0.0,TAKEOFF_CMD_SENT,"{""drone"": 1}"
+2026-11-10T17:51:00.305+08:00,12.047,TAKEOFF_WAIT_DONE,{}
+2026-11-10T17:51:00.305+08:00,12.047,HOVERING_AT_START,"{""note"": ""type GO + Enter to start the sweep, LAND + Enter to land"", ""timeout_s"": 120.0}"
+2026-11-10T17:51:04.023+08:00,15.766,GO_RECEIVED,"{""hovered_s"": 3.7}"
+2026-11-10T17:51:04.057+08:00,15.813,TRAJECTORY_START,"{""points"": 1346, ""duration_s"": 134.5, ""source"": ""generated sweep""}"
+2026-11-10T17:51:23.050+08:00,34.797,TAG_DETECTED,"{""id"": 2, ""x"": 1.29, ""y"": -1.55, ""first_seen_s"": 33.67, ""frames"": 3, ""range_m"": 0.6, ""cam_xyz_m"": ""(-0.01,0.34,0.49)"", ""frame_ms"": 51442}"
+2026-11-10T17:52:40.790+08:00,112.547,ABORT,"{""reason"": ""geofence breach at (3.48, 1.94)""}"
+2026-11-10T17:52:40.993+08:00,112.75,LANDING_CMD_SENT,"{""emergency"": true}"
