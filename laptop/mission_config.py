@@ -32,6 +32,8 @@ class MissionConfig:
     lane_spacing_m: float
     edge_margin_m: float
     lane_axis: str
+    sweep_entry: str
+    sweep_return: str
     camera: CameraGeometry
     max_pose_err: float
     max_range_m: float
@@ -102,6 +104,12 @@ def parse_config(cfg: dict) -> MissionConfig:
     lane_axis = str(sweep.get("lane_axis", "x"))
     if lane_axis not in ("x", "y"):
         raise ValueError("sweep.lane_axis must be 'x' or 'y'")
+    entry = str(sweep.get("entry", "direct"))
+    if entry not in ("direct", "lateral", "left", "right"):
+        raise ValueError("sweep.entry must be 'direct', 'lateral', 'left' or 'right'")
+    ret = str(sweep.get("return_leg", "direct"))
+    if ret not in ("direct", "lateral"):
+        raise ValueError("sweep.return_leg must be 'direct' or 'lateral'")
 
     expected = det.get("expected_tags")
     if expected is not None:
@@ -117,6 +125,8 @@ def parse_config(cfg: dict) -> MissionConfig:
         lane_spacing_m=_num(sweep, "lane_spacing_m", 1.0, positive=True),
         edge_margin_m=_num(sweep, "edge_margin_m", 0.3, minimum=0.0),
         lane_axis=lane_axis,
+        sweep_entry=entry,
+        sweep_return=ret,
         camera=CameraGeometry(
             pitch_deg=_num(cam, "pitch_deg", 45.0),
             fwd_offset_m=_num(cam, "fwd_offset_m", 0.0),

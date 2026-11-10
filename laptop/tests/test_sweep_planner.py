@@ -132,3 +132,31 @@ def test_swath_matches_what_the_simulated_camera_sees():
     half = swath_halfwidth_m(CAM, 0.5, 3.0, 30.0)
     assert _tag_seen_flying_a_lane(half - 0.06)         # just inside: seen
     assert not _tag_seen_flying_a_lane(half + 0.10)     # just outside: never seen
+
+
+def test_left_entry_flies_sideways_then_up_the_leftmost_lane():
+    from sweep_planner import Area, plan_sweep
+    area = Area(0.9, 4.5, -1.8, 1.35)
+    plan = plan_sweep(area, 1.0, 0.3, (0.0, 0.0), "x", entry="left")
+    assert plan[0] == pytest.approx((0.0, -1.5))            # sideways, level with the start
+    assert plan[1] == pytest.approx((1.2, -1.5))            # then straight up the left lane
+    assert min(y for _, y in plan) == -1.5
+    direct = plan_sweep(area, 1.0, 0.3, (0.0, 0.0), "x")
+    assert len(plan) == len(direct) + 1
+
+
+def test_right_entry_starts_on_the_rightmost_lane():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 1.0, 0.3, (0.0, 0.0), "x", entry="right")
+    assert plan[0] == pytest.approx((0.0, 1.05)) and plan[1] == pytest.approx((1.2, 1.05))
+
+
+def test_lateral_return_comes_down_the_last_lane_then_sideways_home():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 1.0, 0.3, (0.0, 0.0), "x",
+                      entry="left", return_leg="lateral")
+    assert plan[-2] == pytest.approx((1.2, 1.05))      # bottom of the last lane
+    assert plan[-1] == pytest.approx((0.0, 1.05))      # level with the start
+    # every leg, including start -> first and last -> start, is axis-aligned
+    legs = zip([(0.0, 0.0), *plan], [*plan, (0.0, 0.0)])
+    assert all(abs(a[0] - b[0]) < 1e-9 or abs(a[1] - b[1]) < 1e-9 for a, b in legs)

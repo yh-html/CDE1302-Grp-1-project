@@ -137,7 +137,8 @@ def camera_footprint(cfg, x: float, y: float, heading: float) -> np.ndarray | No
 
 def planned_path(cfg) -> tuple[np.ndarray, np.ndarray]:
     """(path xy, waypoint xy) in the local frame."""
-    plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0), cfg.lane_axis)
+    plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, (0.0, 0.0), cfg.lane_axis,
+                  cfg.sweep_entry, cfg.sweep_return)
     wps = np.array(plan) if plan else np.zeros((0, 2))
     if cfg.traj_csv:
         p = Path(cfg.traj_csv)

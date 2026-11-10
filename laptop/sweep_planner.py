@@ -69,7 +69,8 @@ def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
 
 
 def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
-               start: Point = (0.0, 0.0), lane_axis: str = "x") -> list[Point]:
+               start: Point = (0.0, 0.0), lane_axis: str = "x",
+               entry: str = "direct", return_leg: str = "direct") -> list[Point]:
     """
     Lawn-mower waypoints covering `area`.
 
@@ -77,6 +78,19 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     The area is shrunk by edge_margin_m so the drone never aims at the
     boundary.  Lane order and direction are chosen to minimise the flown
     distance from `start` and back to it.
+
+    entry: how the drone gets from `start` to the first lane.
+      "direct"  - straight (usually diagonal) line to the first lane corner.
+      "lateral" - fly across the lanes first (level with `start`) until in
+                  line with the first lane, then turn 90 deg up it.  Adds one
+                  waypoint at the front of the plan.
+      "left" / "right" - "lateral", and the first lane is the one furthest
+                  left (min y) / right (max y).  lane_axis "x" only.
+    return_leg: how the drone gets from the last lane back to `start`.
+      "direct"  - straight (usually diagonal) line home.
+      "lateral" - carry on along the last lane until level with `start`, then
+                  fly across the lanes to it.  Adds one waypoint at the end
+                  (the mission's return-to-start leg is then the sideways one).
     """
     if lane_spacing_m <= 0:
         raise ValueError("lane_spacing_m must be positive")
@@ -84,6 +98,12 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
         raise ValueError("edge_margin_m must be non-negative")
     if lane_axis not in ("x", "y"):
         raise ValueError("lane_axis must be 'x' or 'y'")
+    if entry not in ("direct", "lateral", "left", "right"):
+        raise ValueError("entry must be 'direct', 'lateral', 'left' or 'right'")
+    if entry in ("left", "right") and lane_axis != "x":
+        raise ValueError("entry 'left'/'right' needs lane_axis 'x'")
+    if return_leg not in ("direct", "lateral"):
+        raise ValueError("return_leg must be 'direct' or 'lateral'")
 
     # Work in (u, v): u runs along a lane, v steps between lanes.
     if lane_axis == "x":
@@ -103,9 +123,19 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     v_lo, v_hi = shrink(v_lo, v_hi)
     lanes = _lane_positions(v_lo, v_hi, lane_spacing_m)
 
+    def _square_corner(home: Point, lane_end: Point) -> Point | None:
+        """Point level with `home` (along the lane) and in line with `lane_end`'s
+        lane, so home <-> lane_end becomes two legs at 90 deg; None if not needed."""
+        lu, lv = (lane_end[0], lane_end[1]) if lane_axis == "x" else (lane_end[1], lane_end[0])
+        hu, hv = (home[0], home[1]) if lane_axis == "x" else (home[1], home[0])
+        if abs(lu - hu) < 1e-9 or abs(lv - hv) < 1e-9:
+            return None                      # already straight in line
+        return to_xy(hu, lv)
+
     best: list[Point] | None = None
     best_cost = math.inf
-    for ordered in (lanes, lanes[::-1]):
+    orders = {"left": [lanes], "right": [lanes[::-1]]}.get(entry, [lanes, lanes[::-1]])
+    for ordered in orders:
         for first_forward in (True, False):
             pts: list[Point] = []
             forward = first_forward
@@ -117,6 +147,14 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
                                              p[1] - pts[-1][1]) > 1e-9:
                         pts.append(p)
                 forward = not forward
+            if pts and entry != "direct":
+                corner = _square_corner(start, pts[0])
+                if corner is not None:
+                    pts.insert(0, corner)
+            if pts and return_leg == "lateral":
+                corner = _square_corner(start, pts[-1])
+                if corner is not None:
+                    pts.append(corner)
             cost = path_length(pts, start, return_to_start=True)
             if cost < best_cost - 1e-9:
                 best, best_cost = pts, cost

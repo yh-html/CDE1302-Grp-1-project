@@ -103,7 +103,7 @@ class TagMission:
 
         self.start_point = (0.0, 0.0)
         self.plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
-                               self.start_point, cfg.lane_axis)
+                               self.start_point, cfg.lane_axis, cfg.sweep_entry, cfg.sweep_return)
         self.fence = cfg.area.including(*self.start_point).expanded(cfg.geofence_margin_m)
         # Soft fence: just inside the hard fence. Crossing it ends the search, the drone
         # holds, flies back to the start and lands (instead of landing where it is).

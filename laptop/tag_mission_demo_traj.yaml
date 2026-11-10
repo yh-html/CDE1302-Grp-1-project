@@ -27,6 +27,10 @@ sweep:
   lane_spacing_m: 1.0     # ASSUMED. `run_tag_mission.py --plan-only` prints the camera-based maximum and a suggestion.
   edge_margin_m: 0.3      # keep waypoints this far inside the boundary
   lane_axis: x            # lanes run along x (forward); "y" runs them sideways
+  entry: left             # fly sideways (left) from the start to the first lane, then turn up it.
+                          # right = rightmost lane first, lateral = nearest side, direct = old diagonal
+  return_leg: lateral     # come back down the last lane to level with the start, then sideways home
+                          # (direct = old diagonal)
 
 # Where the camera sits on the drone and how it is tilted.  This sets the tag
 # localisation error (15% of the marks): measure it on the assembled drone.

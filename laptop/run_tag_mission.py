@@ -170,7 +170,8 @@ def main(argv=None) -> int:
 
     if args.plan_only:
         plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m,
-                          (0.0, 0.0), cfg.lane_axis)
+                          (0.0, 0.0), cfg.lane_axis,
+                          cfg.sweep_entry, cfg.sweep_return)
         print(f"Search area: {cfg.area}")
         for i, (x, y) in enumerate(plan, 1):
             print(f"  {i:2d}: x={x:6.2f}  y={y:6.2f}")
