@@ -71,9 +71,7 @@ class MissionConfig:
     traj_csv: str | None = None     # fly this t,x,y,z CSV instead of generating the sweep
     traj_slow_speed_mps: float | None = None   # speed where a tag spot is in camera view
     traj_slow_before_m: float = 0.45           # slow zone starts this far short of a spot (in x)
-    traj_slow_after_m: float = 0.05            # ... and ends this far past it (negative: short of it)
-    traj_start_window_s: float = 10.0          # keep re-sending START for a pre-uploaded sweep this long
-    found_return: str = "lateral"              # after all tags found: "lateral" via the corner, or "direct"
+    traj_slow_after_m: float = 0.05            # ... and ends this far past it
     traj_slow_halfwidth_m: float = 0.3         # ... and this far either side of it (in y)
     tag_spots: tuple[tuple[float, float], ...] = ()   # where tags may be placed (local frame)
     far_end_back_m: float = 0.0                # lanes end this far short of the far edge
@@ -104,13 +102,6 @@ def _num(section: dict, key: str, default: float, positive: bool = False,
         raise ValueError(f"{key} must be positive, got {v}")
     if minimum is not None and v < minimum:
         raise ValueError(f"{key} must be >= {minimum}, got {v}")
-    return v
-
-
-def _choice(section: dict, key: str, default: str, allowed: tuple) -> str:
-    v = str(section.get(key, default))
-    if v not in allowed:
-        raise ValueError(f"{key} must be one of {allowed}, got {v!r}")
     return v
 
 
@@ -224,9 +215,7 @@ def parse_config(cfg: dict) -> MissionConfig:
         traj_slow_speed_mps=(_num(traj, "slow_speed_mps", 0.06, positive=True)
                              if traj.get("slow_speed_mps") is not None else None),
         traj_slow_before_m=_num(traj, "slow_before_m", 0.45, minimum=0.0),
-        traj_slow_after_m=_num(traj, "slow_after_m", 0.05, minimum=-0.4),
-        traj_start_window_s=_num(traj, "start_window_s", 10.0, positive=True),
-        found_return=_choice(mis, "found_return", "lateral", ("lateral", "direct")),
+        traj_slow_after_m=_num(traj, "slow_after_m", 0.05, minimum=0.0),
         traj_slow_halfwidth_m=_num(traj, "slow_halfwidth_m", 0.3, positive=True),
         tag_spots=tuple((float(p[0]), float(p[1])) for p in (cfg.get("tag_spots") or [])),
         walls=walls,

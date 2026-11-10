@@ -25,21 +25,6 @@ class LossyUploadSim(SimLink):
         self._log_cmd("TRAJ_UPLOAD")
 
 
-class LateFlyingSim(SimLink):
-    """Like the firmware when the climb is slow: START is ignored until 14 s after takeoff
-    (past the mission's takeoff wait), and is not consumed while ignored."""
-
-    def send_start(self):
-        self._t_takeoff = self._clock.now()
-        super().send_start()
-
-    def start_trajectory(self, traj_id, dt_ms):
-        if self._clock.now() - self._t_takeoff < 14.0:
-            self._log_cmd("TRAJ_START")
-            return
-        super().start_trajectory(traj_id, dt_ms)
-
-
 def run(tmp_path, link_cls=SimLink, go_after_s=None):
     cfg = parse_config(raw_cfg(None, stop_when_all_found=False))
     clock = SimClock()
@@ -104,17 +89,4 @@ def test_fallback_to_full_upload_when_preupload_was_lost(tmp_path):
     assert "TRAJECTORY_PREUPLOAD_NOT_STARTED" in n
     assert "TRAJECTORY_END" in n and "ABORT" not in n
     cmds = [c for _, c in link.commands]
-    # bare STARTs re-sent every 0.5 s for the whole start window (plus one same-id
-    # re-upload halfway), then the full-upload fallback
-    assert cmds.count("TRAJ_START") >= 5 and cmds.count("TRAJ") >= 1
-    assert cmds.index("TRAJ") > max(i for i, c in enumerate(cmds) if c == "TRAJ_START")
-
-
-def test_start_retries_until_the_drone_is_ready(tmp_path):
-    """The firmware ignores START until it is in its flying phase; keep sending it."""
-    code, link, mlog = run(tmp_path, link_cls=LateFlyingSim)
-    assert code == 0 and link.landed
-    n = names(mlog)
-    assert "TRAJECTORY_PREUPLOAD_STARTED" in n and "TRAJECTORY_PREUPLOAD_NOT_STARTED" not in n
-    cmds = [c for _, c in link.commands]
-    assert cmds.count("TRAJ_START") >= 2 and cmds.count("TRAJ") == 1   # no full re-upload
+    assert cmds.count("TRAJ_START") == 1 and cmds.count("TRAJ") >= 1
