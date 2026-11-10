@@ -107,7 +107,7 @@ detection:
   min_frames: 3           # a tag counts as found only after this many distinct camera frames
                           # (10 Nov flight: tag 2 misread once as 14 ended the sweep early)
   merge_radius_m: 0.5     # an ID this close to a stronger tag is a misread of it, not a new tag
-  settle_s: 4.0           # hover this long after the last tag is found, to average more sightings
+  settle_s: 1.0           # hover this long after the last tag is found (was 4; costs completion time)
   stop_when_all_found: true    # true: return as soon as expected_tags are found
 
 mission:
@@ -116,13 +116,14 @@ mission:
   # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
   cruise_speed_mps: 0.20
   altitude_m: 0.5         # firmware CRUISE_ALT_M (main/main.c); used for the sweep planning and the sim
-  takeoff_wait_s: 12.0    # as in laptop/TEST_GUIDE.md
+  takeoff_wait_s: 8.0     # then START is re-sent every 0.5 s until the drone accepts it (trajectory.start_window_s)
   arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
   min_leg_timeout_s: 15.0
   max_mission_s: 600.0    # stop searching after this long, then return and land
   soft_fence_margin_m: 0.3   # past the search area by this: hold, fly back to start, land (before the hard fence)
                              # was 0.15: the sideways legs run along x = 0 and a 0.18 m drift back tripped it (10 Nov 17:47)
   geofence_margin_m: 0.45 # land if outside the search area plus this; 0.45 puts the hard fence
+  found_return: direct    # all tags found early: fly straight home (one goto) instead of via the corner
                           # exactly on the PDF flight boundary front (4.5+0.45 = 4.95) and back
                           # (0-0.45 = launch-square back edge). Was 0.5 (reached x 5.15 / 5.0).
   wall_clearance_m: 0.5   # ...but never let the hard geofence come closer than this to arena_walls
@@ -145,7 +146,8 @@ simulation:
 # (the mission command puts it there). To abort by hand: flip the RC mode switch to Position, then land.
 trajectory:
   enabled: true
-  speed_mps: 0.144       # peak speed (was 0.12; +20% on 10 Nov); slower in curves and at start/end
+  speed_mps: 0.144       # peak speed. 0.20 (10 Nov 19:18) blurred the tags in evening light: 28 good reads vs
+                         # 147 at 0.144 and no tags found. Slower in curves, at start/end and at tag spots
   corner_radius_m: 0.35  # rounding of lane turns
   accel_mps2: 0.08
   # Slow down where the camera can see a tag spot (spots listed in tag_spots). The heading is
@@ -153,7 +155,10 @@ trajectory:
   # runs. A tag boxed in by the 0.15 m foam block is visible over the wall only from about
   # 0.3 m short of it: about 2 s at 0.144 m/s (about 4 detections at 2 Hz) vs about 5 s at 0.06 m/s.
   slow_speed_mps: 0.06    # remove this line to fly at speed_mps everywhere
-  slow_before_m: 0.45     # slow zone: from this far short of a spot (x) ...
+  start_window_s: 10.0    # keep re-sending START for the pre-uploaded sweep this long (firmware ignores it
+                          # until it has reached height); then fall back to a full upload
+  slow_before_m: 0.45     # slow zone: from this far short of a spot (x) ... (tags sit up to ~0.35 m off the
+                          # marked spots, so keep the zone generous)
   slow_after_m: 0.05      # ... to this far past it ...
   slow_halfwidth_m: 0.3   # ... and this far either side of it (y)
   dt_s: 0.1              # firmware holds max 2400 points

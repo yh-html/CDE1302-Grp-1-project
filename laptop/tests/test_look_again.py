@@ -134,3 +134,60 @@ def test_resumed_sweep_runs_to_the_end_then_returns_and_lands(tmp_path):
     assert "LANDING_CMD_SENT" in names and "ABORT" not in names
     assert math.hypot(link.x, link.y) < 0.3
     assert {e.tag_id for e in mission.tracker.confirmed()} == {2, 4, 6}
+
+
+class LaggyGlimpseSim(GlimpseSim):
+    """Telemetry arrives 0.4 s late (10 Hz + WiFi), like the real drone: right after a
+    HOLD the newest packet still reports NAV_TRAJ for the old trajectory. On 10 Nov
+    19:18 that made the look move count as 'started' and the drone hovered in place."""
+
+    LAG_S = 0.4
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self._hist = []
+
+    def _emit_telemetry(self, s):
+        self._hist.append(s)
+        super()._emit_telemetry(s)
+
+    # ...and the first upload after a HOLD loses a chunk, so the drone refuses that START
+    # (seen on the real drone: mid-flight uploads often need a second try)
+    def send_hold(self):
+        self._drop_next_upload = True
+        super().send_hold()
+
+    def send_trajectory(self, pts, dt_ms):
+        if getattr(self, "_drop_next_upload", False):
+            self._drop_next_upload = False
+            self._log_cmd("TRAJ_LOST")
+            return
+        super().send_trajectory(pts, dt_ms)
+
+    def latest(self):
+        now = self._clock.now()
+        old = [s for s in self._hist if now - s.t >= self.LAG_S]
+        if not old:
+            return self._hist[0] if self._hist else None
+        s = old[-1]
+        return type(s)(**{**s.__dict__, "t": s.t + self.LAG_S})    # received LAG_S later
+
+
+def test_look_move_really_flies_to_the_look_point_despite_telemetry_lag(tmp_path):
+    cfg = parse_config(raw_cfg(LOOK))
+    clock = SimClock()
+    link = LaggyGlimpseSim(1, clock, cfg.camera, TAGS, speed_mps=0.3, takeoff_s=8.0,
+                           max_range_m=3.0, min_elevation_deg=30.0, noise_m=0.01,
+                           packet_hz=2.0, hidden=(6,))
+    seen = []
+    link.on_telemetry(lambda s: seen.append((clock.now(), s.x, s.y)))
+    mlog = MissionLog(tmp_path / "run", wall=clock.wall, now=clock.now)
+    TagMission(cfg, link, clock, mlog, drone_id=1).run()
+    d = events(mlog, "LOOK_AGAIN_START")[0]["details"]
+    # the tag may get confirmed before the drone arrives, so require a real move towards it
+    d0 = math.hypot(d["x"] - d["look_x"], d["y"] - d["look_y"])
+    assert min(math.hypot(x - d["look_x"], y - d["look_y"]) for _, x, y in seen) < 0.5 * d0 + 0.05, \
+        "drone never moved towards the look point"
+    assert events(mlog, "LOOK_AGAIN_RESULT")[0]["details"]["confirmed"] is True
+    cmds = [c for _, c in link.commands]
+    assert "TRAJ" in cmds[cmds.index("HOLD") + 1:], "no look-move trajectory after the HOLD"

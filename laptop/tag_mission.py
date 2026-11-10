@@ -430,36 +430,71 @@ class TagMission:
             self.link.send_hold()          # nav_cancel: drone hovers where it is
             raise
 
+    def _traj_running_since(self, t_sent: float) -> bool:
+        """True only for a telemetry packet received after t_sent that shows NAV_TRAJ.
+        Right after a HOLD the newest packet can still say NAV_TRAJ for the old
+        trajectory (10 Hz telemetry + WiFi latency), which must not count as started."""
+        s = self.link.latest()
+        return s is not None and s.t >= t_sent and s.nav_state == NAV_TRAJ
+
+    def _wait_traj_stopped(self, timeout_s: float = 1.5) -> None:
+        """After a HOLD, wait until telemetry no longer reports the old trajectory."""
+        end = self.clock.now() + timeout_s
+        while self.clock.now() < end:
+            s = self.link.latest()
+            if s is None or s.nav_state != NAV_TRAJ:
+                return
+            self.clock.sleep(0.05)
+
     def _play_trajectory(self, pts, dt_ms: int, duration: float, *, xy=None,
                          watch: bool = False, must_start: bool = True,
                          log_end: bool = True, pre_id: Optional[int] = None) -> bool:
         """Upload and play a trajectory until it ends. With watch=True, raise _LookAgain
         when a partial sighting needs a closer look. Returns False only if it never
         started and must_start is False. pre_id: the upload is already on the drone
-        under this id, so try a bare START first; if that does not start within 1.5 s,
-        fall back to full uploads (new ids)."""
+        under this id, so send bare STARTs (tiny packets) every 0.5 s for up to
+        trajectory.start_window_s: the firmware ignores START until it has reached
+        height and switched to its flying phase, which the laptop cannot see, so this
+        starts the sweep the moment the drone is ready. Halfway through the window the
+        chunks are re-sent once with the same id, in case one was still missing. Only if
+        it never starts: fall back to full uploads (new ids)."""
         started = False
         deadline = self.clock.now() + duration + 15.0
+        self._wait_traj_stopped()
         if pre_id is not None:
-            self.link.start_trajectory(pre_id, dt_ms)
-            t_end = self.clock.now() + 1.5
+            t_first = self.clock.now()
+            t_end = t_first + self.cfg.traj_start_window_s
+            t_reupload = t_first + 2.0
+            next_start, starts = t_first, 0
             while self.clock.now() < t_end:
                 self._check_safety(allow_stop=True)
-                if self.link.latest().nav_state == NAV_TRAJ:
+                if self._traj_running_since(t_first):
                     started = True
                     break
+                now = self.clock.now()
+                if now >= t_reupload:
+                    self.link.upload_trajectory(pts, pre_id)    # fill any chunk still missing
+                    t_reupload = now + 2.0
+                if now >= next_start:
+                    self.link.start_trajectory(pre_id, dt_ms)
+                    starts += 1
+                    next_start = now + 0.5
                 self.clock.sleep(0.1)
-            if not started:
-                self.mlog.event("TRAJECTORY_PREUPLOAD_NOT_STARTED",
+            if started:
+                self.mlog.event("TRAJECTORY_PREUPLOAD_STARTED", starts_sent=starts,
+                                waited_s=round(self.clock.now() - t_first, 1))
+            else:
+                self.mlog.event("TRAJECTORY_PREUPLOAD_NOT_STARTED", starts_sent=starts,
                                 note="falling back to full upload")
         for attempt in range(1, 6):
             if started:
                 break
+            t_sent = self.clock.now()
             self.link.send_trajectory(pts, dt_ms)
             t_end = self.clock.now() + 1.5
             while self.clock.now() < t_end:
                 self._check_safety(allow_stop=True)
-                if self.link.latest().nav_state == NAV_TRAJ:
+                if self._traj_running_since(t_sent):
                     started = True
                     break
                 self.clock.sleep(0.1)
@@ -729,7 +764,8 @@ class TagMission:
                 self.mlog.event("SEARCH_STOPPED", reason=self._stop_reason)
                 # All tags found is a normal finish: come home the same squared-off way
                 # as the end of the sweep. Soft fence / time limit / timeouts: straight home.
-                squared = isinstance(stop, _AllTagsFound)
+                squared = (isinstance(stop, _AllTagsFound)
+                           and self.cfg.found_return == "lateral")
             else:
                 squared = False          # sweep finished: the plan already ends at the corner
             self._return_and_land(squared)
