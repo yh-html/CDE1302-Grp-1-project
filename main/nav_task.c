@@ -43,6 +43,7 @@ typedef struct { float x, y, z; } traj_pt_t;
 static traj_pt_t *s_traj;          /* PSRAM; offsets from first point, NaN x = not received */
 static uint16_t   s_traj_n;        /* points in the current upload                */
 static uint8_t    s_traj_id;       /* current upload id, 0 = none / already played */
+static bool       s_traj_upload_logged;  /* "upload complete" already logged     */
 static uint16_t   s_traj_dt_ms;
 static float      s_traj_org[3];   /* odom position where playback started        */
 static float      s_traj_yaw;
@@ -428,17 +429,30 @@ void nav_traj_put(uint8_t id, uint16_t total, uint16_t offset,
 
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     bool playing = (s_nav.state == NAV_TRAJ);
+    bool started = false, complete = false;
     if (!playing) {
         if (id != s_traj_id || total != s_traj_n) {     /* new upload */
             for (int i = 0; i < total; i++) s_traj[i].x = NAN;
             s_traj_id = id;
             s_traj_n  = total;
+            s_traj_upload_logged = false;
+            started = true;
         }
         memcpy(&s_traj[offset], xyz, (size_t)n * sizeof(traj_pt_t));
+        if (!s_traj_upload_logged) {
+            complete = true;
+            for (int i = 0; complete && i < total; i++) {
+                if (isnan(s_traj[i].x)) complete = false;
+            }
+            if (complete) s_traj_upload_logged = true;
+        }
     }
     xSemaphoreGive(s_mutex);
 
     if (playing) ESP_LOGW(TAG, "Trajectory chunk ignored — playing");
+    /* Bench check without arming: "complete" never printed = a chunk was lost. */
+    if (started)  ESP_LOGI(TAG, "Trajectory upload id=%u: receiving %u pts", id, total);
+    if (complete) ESP_LOGI(TAG, "Trajectory upload id=%u complete: %u pts", id, total);
 }
 
 void nav_traj_start(uint8_t id, uint16_t dt_ms)

@@ -37,6 +37,12 @@ from tag_localizer import CameraGeometry
 
 log = logging.getLogger("tag_mission")
 
+# Gap between trajectory upload chunks. The ESP32 queues at most 6 UDP packets
+# (CONFIG_LWIP_UDP_RECVMBOX_SIZE) and drains them at 10 Hz, so 60 ms (<= 2 per drain)
+# leaves room for a late drain. 25 ms lost chunks on 10 Nov once the upload grew
+# to 17 chunks ("drone did not start the trajectory").
+TRAJ_CHUNK_GAP_S = 0.060
+
 
 # ---------------------------------------------------------------------------
 # Clocks
@@ -248,7 +254,7 @@ class UdpLink(DroneLink):
         traj_id = random.randint(1, 255)
         for p in build_traj_packets(traj_id, pts):
             self._comms.send_raw(self.drone_id, p)
-            time.sleep(0.025)          # ESP drains commands from a small UDP queue
+            time.sleep(TRAJ_CHUNK_GAP_S)   # ESP holds only 6 queued UDP packets, drained at 10 Hz
         self._comms.send_raw(self.drone_id, build_traj_start(traj_id, dt_ms))
 
     def send_hold(self) -> None:
