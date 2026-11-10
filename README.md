@@ -1,9 +1,38 @@
-# esp-everything-qgc-bridge
+# CDE1302 Group 1: Autonomous AprilTag-Search Drone
 
-ESP32-S3 companion-computer firmware for CDE1302.
-It consists of ESP32 firmware in `main/` and laptop-side Python scripts in `laptop/`.
+Small indoor drones built for CDE1302 and the SAFMC 2026 Cat Swarm Challenge.
+Each drone carries an ESP32-S3 companion computer that talks to the PX4 flight
+controller over MAVLink, reads eight VL53L5CX time-of-flight sensors for
+obstacle avoidance, and detects AprilTags with its onboard camera. A laptop
+coordinates the drones over WiFi: it sends missions, watches them live,
+and logs every flight for analysis.
 
-Note that the example drone ID in this README is 22 (it's indicated as [drone ID] in some places). You need to change it to your drone's ID when running the scripts.
+**Mini-project mission:** take off on command, search a 3.6 m × 3.15 m area
+for three AprilTags, log each tag's ID and position, then return and land.
+
+## Repository layout
+
+| Folder | What's in it |
+|---|---|
+| [`main/`](main) | ESP32-S3 firmware (FreeRTOS tasks: MAVLink, ToF, VFH navigation, AprilTag, WiFi) |
+| [`components/`](components), [`managed_components/`](managed_components) | Vendored firmware libraries (MAVLink, esp-apriltag, VL53L5CX, camera) |
+| [`laptop/`](laptop) | Python ground station: drone link, missions, live camera/tag viewers, flight analysis, tests |
+| [`waypoints/`](waypoints), [`trajectory/`](trajectory) | Waypoint missions and MATLAB minimum-snap trajectories |
+| [`mini_project/`](mini_project) | Mission guides, preflight checklists, Simulink search sweep, report |
+| [`CAD/`](CAD), [`codex/`](codex) | 3D-printable frame design and the scripts that generate it |
+| [`docs/`](docs) | QGroundControl bridge notes and the SAFMC 2026 challenge booklet |
+| [`tools/`](tools) | Pinned ESP-IDF version |
+
+**Guides:** [flight tests](laptop/TEST_GUIDE.md) ·
+[waypoint missions](waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md) ·
+[drone bring-up](mini_project/DRONE_BRINGUP_GUIDE.md) ·
+[preflight](mini_project/PREFLIGHT_GUIDE.md) ·
+[QGroundControl bridge](docs/QGC_MAVLINK_BRIDGE.md)
+
+## Before you start
+
+> The example drone ID in this README is **22** (written as `[DRONE_ID]` in
+> commands). Replace it with your own drone's ID.
 
 ## 1. Setup ESP32 (Optional)
 
@@ -17,7 +46,7 @@ dependency is ESP-IDF itself:
 
 ```bash
 git clone https://github.com/espressif/esp-idf.git ../esp-idf
-cd ../esp-idf && git checkout "$(sed -n 's/^IDF_CHECKOUT_REF=//p' ../esp-everything-qgc-bridge/tools/idf-pin.env)"
+cd ../esp-idf && git checkout "$(sed -n 's/^IDF_CHECKOUT_REF=//p' ../CDE1302-Grp-1-project/tools/idf-pin.env)"
 git submodule update --init --recursive
 ./install.sh esp32s3          # ~2 GB of toolchain into ~/.espressif
 cd -
