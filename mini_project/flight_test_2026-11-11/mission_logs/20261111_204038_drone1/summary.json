@@ -1,0 +1,17 @@
+{
+  "mode": "mission",
+  "truth_errors": null,
+  "drone_id": 1,
+  "exit_code": 130,
+  "exit_reason": "interrupted by operator",
+  "search_stopped": "",
+  "hover_for_go_s": 0.0,
+  "waypoints_planned": 6,
+  "waypoints_reached": 0,
+  "waypoints_missed": 0,
+  "takeoff_cmd_time": "2026-11-11T20:40:45.451+08:00",
+  "landing_cmd_time": "2026-11-11T20:40:55.661+08:00",
+  "mission_time_to_landing_cmd_s": 10.217999999999847,
+  "tags": [],
+  "ignored_ids": []
+}

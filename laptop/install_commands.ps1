@@ -12,7 +12,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $bin = Join-Path $HOME ".local\bin"
 New-Item -ItemType Directory -Force $bin | Out-Null
 
-foreach ($name in "run_tag_mission", "live_map", "tag_stream", "send_trajectory", "analyze_flight") {
+foreach ($name in "run_tag_mission", "live_map", "tag_stream", "send_trajectory", "analyze_flight", "simple_arm_takeoff_land") {
     $script = Join-Path $here "$name.py"
     if (-not (Test-Path $script)) { continue }
     Set-Content -Encoding ascii (Join-Path $bin "$name.cmd") "@echo off`r`npython `"$script`" %*"

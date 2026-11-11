@@ -81,6 +81,9 @@ class MissionConfig:
     # Refuse takeoff if PX4's heading is more than this far from 0 (no compass: the
     # frame's 'forward' is wherever the drone pointed at power-on). 0 = no check.
     max_start_heading_deg: float = 3.0
+    # Height the firmware takes off to (main/main.c CRUISE_ALT_M). If altitude_m is
+    # higher, the sweep trajectory climbs the difference (trajectory mode only).
+    takeoff_altitude_m: float = 0.5
     traj_corner_m: float = 0.35
     traj_accel: float = 0.08
     traj_dt_s: float = 0.1
@@ -250,6 +253,7 @@ def parse_config(cfg: dict) -> MissionConfig:
         max_consecutive_misses=int(_num(mis, "max_consecutive_misses", 3, minimum=1)),
         output_dir=str(mis.get("output_dir", "mission_logs")),
         max_start_heading_deg=_num(mis, "max_start_heading_deg", 3.0, minimum=0.0),
+        takeoff_altitude_m=_num(mis, "takeoff_altitude_m", 0.5, positive=True),
         sim=SimSettings(
             tags=tags,
             noise_m=_num(sim, "noise_m", 0.0, minimum=0.0),

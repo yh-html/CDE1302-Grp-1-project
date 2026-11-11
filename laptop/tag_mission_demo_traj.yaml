@@ -26,7 +26,8 @@ search_area:
   min_x: 0.9
   max_x: 4.5
   min_y: -1.8
-  max_y: 1.35
+  max_y: 1.85    # was 1.35: right lane moved out to y = 1.40, where tag 6 / the foam block
+                  # measured on 11 Nov (1.47, 1.39), not the PDF spot row (0.90)
 
 # Walls of the arena (MEASURED, same sketch). Both fences are cut back to stay
 # mission.wall_clearance_m inside these; the live map draws them.
@@ -44,16 +45,16 @@ tag_spots:
   - [1.35, -1.35]
   - [2.70, -1.35]
   - [4.05, -1.35]
-  - [1.35, 0.90]
-  - [2.70, 0.90]
-  - [4.05, 0.90]
+  - [1.35, 1.40]   # right row: PDF says 0.90, flights on 11 Nov measured tag 6 at y = 1.4-1.5
+  - [2.70, 1.40]
+  - [4.05, 1.40]
 
 sweep:
   # Two lanes, one straight down each row of tag spots (y = -1.35 and +0.90, x = 1.35..4.05):
   # 2.25 m apart and 0.45 m in from the edges, exactly where the PDF spots are. In the
   # simulator this found all 3 tags for all 20 spot combinations, 12.1 m / about 85 s.
   # It assumes the tags are ON the marked spots; for tags anywhere use 0.8 / 0.3 (5 lanes).
-  lane_spacing_m: 2.25
+  lane_spacing_m: 2.75    # was 2.25: lanes at y = -1.35 and +1.40 (right row moved, see tag_spots)
   edge_margin_m: 0.45
   lane_offset_m: 0.0      # shift both lanes outwards (away from the area centre) by this much, to fly
                           # beside the spots, not over them (e.g. a tag boxed in by foam blocks the
@@ -117,7 +118,10 @@ mission:
   # WAYPOINT_FLIGHT_TEST_GUIDE.md says about 0.2 m/s); the firmware's NAV_CRUISE_SPEED_MS is NOT
   # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
   cruise_speed_mps: 0.20
-  altitude_m: 0.5         # firmware CRUISE_ALT_M (main/main.c); used for the sweep planning and the sim
+  altitude_m: 0.6         # sweep height. 0.8 tried 11 Nov 20:54: wobblier, battery died; 0.5 before. Camera sees ~0.6 m
+                          # either side (tag 6 sits ~0.5 m off the right lane) and over the foam walls.
+                          # The trajectory climbs to it from takeoff_altitude_m in the first ~3 s.
+  takeoff_altitude_m: 0.5 # firmware CRUISE_ALT_M (main/main.c)
   takeoff_wait_s: 12.0    # as in laptop/TEST_GUIDE.md
   arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
   min_leg_timeout_s: 15.0
@@ -130,7 +134,7 @@ mission:
   wall_clearance_m: 0.5   # ...but never let the hard geofence come closer than this to arena_walls
   stale_timeout_s: 3.0    # land if telemetry is older than this
   connect_timeout_s: 30.0
-  max_start_heading_deg: 3.0  # refuse takeoff if PX4 heading is further than this from 0
+  max_start_heading_deg: 0    # OFF (11 Nov: refused takeoff with the drone square in the box). 3 = refuse if PX4 heading is further than 3 deg from 0
                              # (power-cycle in the start box facing forward). 0 = no check
   land_wait_s: 8.0
   max_consecutive_misses: 3
@@ -142,8 +146,8 @@ simulation:
   takeoff_s: 8.0
   tags:                     # three of the six PDF spots; IDs as seen on the 10 Nov flights
     2: [1.35, -1.35]
-    4: [2.7, 0.9]
-    6: [4.05, 0.9]
+    4: [2.7, -1.35]
+    6: [3.7, 1.45]          # where 11 Nov flights put tag 6 / the foam block
 
 # Smooth trajectory mode. The ESP32 plays the whole path on its own 20 Hz clock; PX4 must be in Offboard
 # (the mission command puts it there). To abort by hand: flip the RC mode switch to Position, then land.

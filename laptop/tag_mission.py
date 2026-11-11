@@ -50,6 +50,7 @@ _F_X, _F_Y, _C_X, _C_Y = 163.5047216, 153.22210511, 154.00573087, 107.10222796
 GOTO_RESEND_S = 2.0
 DETECT_STATUS_S = 5.0          # detect-only: how often the position is printed
 _MOVING = (NAV_ROTATING, NAV_FLYING, NAV_STUCK, NAV_TRAJ)
+CLIMB_RATE_MPS = 0.1     # sweep climb from the takeoff height to mission.altitude_m
 
 
 class MissionAbort(Exception):
@@ -402,11 +403,21 @@ class TagMission:
             _, dt_ms, xy = self._make_traj(self.plan, self.start_point, self.start_point)
             self._route = [self.start_point, *self.plan, self.start_point]
         self._traj_xy = xy
-        pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
+        pts = np.column_stack([xy - xy[0], self._climb_z(len(xy), dt_ms)])
         if len(pts) > TRAJ_MAX_PTS:
             raise MissionAbort(f"trajectory has {len(pts)} points, firmware limit {TRAJ_MAX_PTS}; "
                                "raise trajectory.dt_s or speed")
         return pts, dt_ms
+
+    def _climb_z(self, n: int, dt_ms: int):
+        """z offsets (NED, up = negative) for the sweep trajectory: climb from the
+        firmware takeoff height (mission.takeoff_altitude_m) to mission.altitude_m at
+        CLIMB_RATE_MPS while the sweep starts, then hold. The firmware adds these to the
+        z where playback starts, so later trajectories (return, resume) keep the height."""
+        import numpy as np
+        climb = self.cfg.altitude_m - self.cfg.takeoff_altitude_m
+        t = np.arange(n) * dt_ms / 1000
+        return -np.clip(t * CLIMB_RATE_MPS, 0.0, max(climb, 0.0)) if climb > 0 else np.zeros(n)
 
     def _explore_trajectory(self) -> None:
         if self._pre is not None:

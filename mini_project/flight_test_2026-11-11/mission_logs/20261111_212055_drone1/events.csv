@@ -1,0 +1,12 @@
+time,t_mission_s,event,details
+2026-11-11T21:20:55.064+08:00,,WAITING_FOR_TELEMETRY,"{""drone"": 1}"
+2026-11-11T21:20:55.176+08:00,,LINK_ESTABLISHED,"{""drone"": 1, ""x"": -0.0, ""y"": -0.0, ""heading_rad"": 0.0}"
+2026-11-11T21:20:55.177+08:00,,PLAN,"{""detail"": ""search area x[0.9,4.5] y[-1.8,1.85] m, 6 waypoints, 13.6 m flown incl. return, about 68s at 0.2 m/s""}"
+2026-11-11T21:20:58.349+08:00,0.0,TAKEOFF_CMD_SENT,"{""drone"": 1}"
+2026-11-11T21:21:02.846+08:00,4.5,TRAJECTORY_PREUPLOADED,"{""points"": 1279, ""chunks"": 16, ""passes"": 2}"
+2026-11-11T21:21:10.396+08:00,12.047,TAKEOFF_WAIT_DONE,{}
+2026-11-11T21:21:10.396+08:00,12.047,HOVERING_AT_START,"{""note"": ""type GO + Enter to start the sweep, LAND + Enter to land"", ""timeout_s"": 120.0}"
+2026-11-11T21:21:11.916+08:00,13.562,GO_RECEIVED,"{""hovered_s"": 1.5}"
+2026-11-11T21:21:11.916+08:00,13.562,TRAJECTORY_START,"{""points"": 1279, ""duration_s"": 127.8, ""source"": ""generated sweep"", ""preuploaded"": true}"
+2026-11-11T21:21:29.487+08:00,31.141,ABORT,"{""reason"": ""telemetry stale (last packet 3.0s ago)""}"
+2026-11-11T21:21:29.694+08:00,31.344,LANDING_CMD_SENT,"{""emergency"": true}"

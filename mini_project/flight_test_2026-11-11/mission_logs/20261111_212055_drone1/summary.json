@@ -1,0 +1,17 @@
+{
+  "mode": "mission",
+  "truth_errors": null,
+  "drone_id": 1,
+  "exit_code": 1,
+  "exit_reason": "telemetry stale (last packet 3.0s ago)",
+  "search_stopped": "",
+  "hover_for_go_s": 1.5,
+  "waypoints_planned": 6,
+  "waypoints_reached": 0,
+  "waypoints_missed": 0,
+  "takeoff_cmd_time": "2026-11-11T21:20:58.349+08:00",
+  "landing_cmd_time": "2026-11-11T21:21:29.694+08:00",
+  "mission_time_to_landing_cmd_s": 31.34400000000005,
+  "tags": [],
+  "ignored_ids": []
+}
