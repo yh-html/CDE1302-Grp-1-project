@@ -436,19 +436,22 @@ class TagMission:
 
     def _play_trajectory(self, pts, dt_ms: int, duration: float, *, xy=None,
                          watch: bool = False, must_start: bool = True,
-                         log_end: bool = True, pre_id: Optional[int] = None) -> bool:
+                         log_end: bool = True, pre_id: Optional[int] = None,
+                         returning: bool = False) -> bool:
         """Upload and play a trajectory until it ends. With watch=True, raise _LookAgain
         when a partial sighting needs a closer look. Returns False only if it never
         started and must_start is False. pre_id: the upload is already on the drone
         under this id, so try a bare START first; if that does not start within 1.5 s,
-        fall back to full uploads (new ids)."""
+        fall back to full uploads (new ids). returning=True: the flight home, so no
+        search stops (soft fence, all-tags-found) and it ends when the trajectory does."""
         started = False
+        allow_stop = not returning
         deadline = self.clock.now() + duration + 15.0
         if pre_id is not None:
             self.link.start_trajectory(pre_id, dt_ms)
             t_end = self.clock.now() + 1.5
             while self.clock.now() < t_end:
-                self._check_safety(allow_stop=True)
+                self._check_safety(allow_stop)
                 if self.link.latest().nav_state == NAV_TRAJ:
                     started = True
                     break
@@ -462,7 +465,7 @@ class TagMission:
             self.link.send_trajectory(pts, dt_ms)
             t_end = self.clock.now() + 1.5
             while self.clock.now() < t_end:
-                self._check_safety(allow_stop=True)
+                self._check_safety(allow_stop)
                 if self.link.latest().nav_state == NAV_TRAJ:
                     started = True
                     break
@@ -475,9 +478,10 @@ class TagMission:
                 return False
             raise MissionAbort("drone did not start the trajectory")
         self._traj_t0, self._traj_dt_s = self.clock.now(), dt_ms / 1000
-        while ((self.link.latest().nav_state == NAV_TRAJ or self._all_found_t is not None)
+        while ((self.link.latest().nav_state == NAV_TRAJ
+                or (self._all_found_t is not None and not returning))
                and self.clock.now() < deadline):
-            self._check_safety(allow_stop=True)
+            self._check_safety(allow_stop)
             if watch and xy is not None and self._all_found_t is None:
                 idx = min(len(xy) - 1,
                           int((self.clock.now() - self._traj_t0) / self._traj_dt_s))
@@ -643,19 +647,49 @@ class TagMission:
                 if prev_misses >= self.cfg.max_consecutive_misses:
                     raise _StopExploring(f"{prev_misses} consecutive waypoint timeouts")
 
+    def _return_trajectory(self, cur, corner, goal) -> bool:
+        """Fly home as a trajectory (heading held), not CMD_GOTO: the firmware's goto
+        turns to face the goal first, and spinning ~180-300 deg while flying made the
+        optical-flow position slip (11 Nov, 20:02 and 20:14). No slow zones. False if
+        it is already there or the drone would not start it (caller falls back to goto)."""
+        import numpy as np
+        if math.hypot(goal[0] - cur[0], goal[1] - cur[1]) <= self.cfg.arrival_radius_m:
+            return False
+        dt_ms = round(self.cfg.traj_dt_s * 1000)
+        via = [corner] if corner is not None else []
+        tr = smooth_path(via, cur, self.cfg.traj_speed_mps or self.cfg.cruise_speed_mps,
+                         self.cfg.traj_corner_m, self.cfg.traj_accel, dt=dt_ms / 1000, end=goal)
+        xy = tr[:, 1:3]
+        pts = np.column_stack([xy - xy[0], np.zeros(len(xy))])
+        if len(pts) < 2 or len(pts) > TRAJ_MAX_PTS:
+            return False
+        duration = (len(pts) - 1) * dt_ms / 1000
+        self.mlog.event("RETURN_TRAJECTORY", x=goal[0], y=goal[1], points=len(pts),
+                        duration_s=round(duration, 1),
+                        via_corner=None if corner is None else (round(float(corner[0]), 2), round(float(corner[1]), 2)))
+        return self._play_trajectory(pts, dt_ms, duration, must_start=False,
+                                     log_end=False, returning=True)
+
     def _return_and_land(self, squared: bool = False) -> None:
         goal = self.start_point
         s = self.link.latest()
+        corner = None
         if squared and self.cfg.sweep_return == "lateral" and s is not None:
             corner = square_corner(goal, (s.x, s.y), self.cfg.lane_axis)
-            if corner is not None and self.soft_fence.contains(*corner):
+            if corner is not None and not self.soft_fence.contains(*corner):
+                corner = None
+        if ((self.cfg.traj_speed_mps or self.cfg.traj_csv) and s is not None
+                and self._return_trajectory((s.x, s.y), corner, goal)):
+            ok = self._wait_arrival(goal, self.cfg.min_leg_timeout_s, allow_stop=False)
+        else:
+            if corner is not None:
                 self.mlog.event("RETURN_VIA_CORNER", x=round(corner[0], 2), y=round(corner[1], 2))
                 self.link.send_goto(*corner)
                 if not self._wait_arrival(corner, self._leg_timeout(corner), allow_stop=False):
                     self.mlog.event("RETURN_CORNER_TIMEOUT")
-        self.mlog.event("RETURNING_TO_START", x=goal[0], y=goal[1])
-        self.link.send_goto(*goal)
-        ok = self._wait_arrival(goal, self._leg_timeout(goal), allow_stop=False)
+            self.mlog.event("RETURNING_TO_START", x=goal[0], y=goal[1])
+            self.link.send_goto(*goal)
+            ok = self._wait_arrival(goal, self._leg_timeout(goal), allow_stop=False)
         s = self.link.latest()
         self.mlog.event("START_AREA_REACHED" if ok else "RETURN_TIMEOUT",
                         x=round(s.x, 2), y=round(s.y, 2),
@@ -715,6 +749,23 @@ class TagMission:
 
     # -- entry point -------------------------------------------------------
 
+    def _heading_ok(self) -> bool:
+        """No compass: PX4's 'forward' is wherever the drone pointed at power-on, so a
+        drone turned in the start box flies the whole sweep rotated (11 Nov 20:29: 6 deg
+        put it near the left wall). Refuse takeoff unless the heading is near 0."""
+        limit = self.cfg.max_start_heading_deg
+        s = self.link.latest()
+        if not limit or s is None:
+            return True
+        err = math.degrees(math.atan2(math.sin(s.heading_rad), math.cos(s.heading_rad)))
+        if abs(err) <= limit:
+            return True
+        self.exit_reason = f"heading {err:+.1f} deg at the start, limit {limit:g}"
+        self.mlog.event("HEADING_NOT_ZEROED", heading_deg=round(err, 1), limit_deg=limit,
+                        fix="power-cycle the drone in the start box facing forward, "
+                            "do not move it, then run again")
+        return False
+
     def run(self) -> int:
         code = 0
         try:
@@ -725,10 +776,14 @@ class TagMission:
                 self._detect_only()
                 self.mlog.event("DETECT_ONLY_END", tags=self._found())
                 return 0
+            if not self._heading_ok():
+                return 1
             if self._confirm_fn is not None and not self._confirm_fn():
                 self.exit_reason = "cancelled before takeoff"
                 self.mlog.event("CANCELLED")
                 return 0
+            if not self._heading_ok():           # re-check: it may have been moved meanwhile
+                return 1
             self._takeoff()
             try:
                 if self._go_gate is not None:

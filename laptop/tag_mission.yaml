@@ -107,6 +107,8 @@ mission:
   wall_clearance_m: 0.5   # ...but never let the hard geofence come closer than this to arena_walls
   stale_timeout_s: 3.0    # land if telemetry is older than this
   connect_timeout_s: 30.0
+  max_start_heading_deg: 3.0  # refuse takeoff if PX4 heading is further than this from 0
+                             # (power-cycle in the start box facing forward). 0 = no check
   land_wait_s: 8.0
   max_consecutive_misses: 3
   output_dir: mission_logs   # relative to laptop/
