@@ -46,7 +46,7 @@ from datetime import datetime
 from pathlib import Path
 
 from drone_link import RealClock, SimClock, SimLink, UdpLink
-from mission_config import load_config, mission_plan
+from mission_config import find_config, known_stops, load_config, mission_plan
 from mission_log import MissionLog
 from protocol import AT_DEBUG_PORT
 from sweep_planner import (path_length, plan_sweep, suggest_lane_spacing_m,
@@ -166,13 +166,22 @@ def main(argv=None) -> int:
     if args.duration is not None and not args.detect_only:
         raise SystemExit("--duration only applies with --detect-only.")
     truth = parse_truth(args.truth)
+    print(f"Config: {find_config(args.config).resolve()}", flush=True)
     cfg = load_config(args.config)
+    if not truth and cfg.known_tags:      # known-tags layout: score against it
+        truth = {t.tag_id: (t.x, t.y) for t in cfg.known_tags if t.tag_id is not None}
 
     if args.plan_only:
         plan = mission_plan(cfg)
         print(f"Search area: {cfg.area}")
+        stops = {(round(x, 6), round(y, 6)): (h, t) for x, y, h, t in known_stops(cfg)}
         for i, (x, y) in enumerate(plan, 1):
-            print(f"  {i:2d}: x={x:6.2f}  y={y:6.2f}")
+            note = ""
+            if (round(x, 6), round(y, 6)) in stops:
+                h, t = stops[(round(x, 6), round(y, 6))]
+                note = (f"  hover {h:g} s over tag {'?' if t.tag_id is None else t.tag_id} "
+                        f"at ({t.x:g}, {t.y:g})" + (f", BLOCKED open {t.open_side}" if t.blocked else ""))
+            print(f"  {i:2d}: x={x:6.2f}  y={y:6.2f}{note}")
         print("  then return to (0.00, 0.00) and land")
         flown = path_length(plan, (0.0, 0.0), return_to_start=True)
         half = swath_halfwidth_m(cfg.camera, cfg.altitude_m, cfg.max_range_m,
@@ -199,7 +208,7 @@ def main(argv=None) -> int:
                        altitude_m=cfg.altitude_m, hfov_deg=cfg.camera.hfov_deg,
                        vfov_deg=cfg.camera.vfov_deg, max_range_m=cfg.sim.max_range_m,
                        min_elevation_deg=cfg.min_view_elevation_deg,
-                       noise_m=cfg.sim.noise_m)
+                       noise_m=cfg.sim.noise_m, boxed=cfg.sim.boxed or None)
     else:
         clock = RealClock()
         link = UdpLink(args.drone_id, args.telem_port, args.cmd_port, args.at_port)

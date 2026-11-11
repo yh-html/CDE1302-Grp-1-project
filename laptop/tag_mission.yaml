@@ -70,7 +70,7 @@ sweep:
 # 5 mm under the frame (body origin = FC centre). Measure the real lens position
 # on the assembled drone and replace these three offsets.
 camera:
-  pitch_deg: 45.0         # fixed nose-down tilt of the optical axis
+  pitch_deg: 90.0         # camera parallel to the ground, looking straight down (was 45 until 11 Nov)
   hfov_deg: 91.0          # field of view, firmware calibration (main/at_detect.c)
   vfov_deg: 82.0
   fwd_offset_m: 0.070     # lens forward of the drone body origin

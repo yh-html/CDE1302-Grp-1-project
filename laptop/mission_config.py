@@ -13,7 +13,9 @@ from pathlib import Path
 
 import yaml
 
-from sweep_planner import Area
+import math
+
+from sweep_planner import Area, path_length
 from tag_localizer import CameraGeometry
 
 
@@ -24,6 +26,17 @@ class SimSettings:
     noise_m: float = 0.0
     takeoff_s: float = 8.0
     max_range_m: float = 4.0
+    boxed: dict = field(default_factory=dict)  # id -> SimLink boxed spec (U-shaped foam block)
+
+
+@dataclass(frozen=True)
+class KnownTag:
+    """A tag whose floor position is given in the config (known_tags section)."""
+    x: float
+    y: float
+    tag_id: int | None = None       # None: position known, ID not
+    blocked: bool = False           # boxed in by a foam block (walls on 3 sides)
+    open_side: str = "+x"           # the block's open side (+x/-x/+y/-y, local frame)
 
 
 @dataclass(frozen=True)
@@ -89,6 +102,13 @@ class MissionConfig:
     look_offset_m: float = 0.25         # look point = glimpse - this in x (camera faces +x)
     look_hover_s: float = 5.0           # hover there this long (ends early once confirmed)
     look_max: int = 2                   # looks per mission
+    # known_tags: fly to each listed tag and hover over it (downward camera) instead of
+    # the sweep. See plan_known_tags.
+    known_tags: tuple[KnownTag, ...] = ()
+    known_hover_s: float = 3.0          # hover over each tag this long ...
+    known_blocked_hover_s: float = 5.0  # ... or this long over a blocked (boxed) tag
+    known_open_side_shift_m: float = 0.0   # hover this far towards a block's open side
+    known_order: str = "shortest"       # "shortest" (best order) or "listed"
 
 
 def _num(section: dict, key: str, default: float, positive: bool = False,
@@ -153,6 +173,31 @@ def parse_config(cfg: dict) -> MissionConfig:
 
     tags = {int(k): (float(v[0]), float(v[1]))
             for k, v in (sim.get("tags", {}) or {}).items()}
+    boxed = {int(k): dict(v or {}) for k, v in (sim.get("boxed", {}) or {}).items()}
+
+    known = cfg.get("known_tags", {}) or {}
+    known_tags: tuple[KnownTag, ...] = ()
+    if known.get("enabled", True) and known.get("tags"):
+        kt = []
+        for i, t in enumerate(known["tags"]):
+            try:
+                side = str(t.get("open_side", "+x"))
+                if side not in ("+x", "-x", "+y", "-y"):
+                    raise ValueError(f"open_side must be +x/-x/+y/-y, got {side!r}")
+                k = KnownTag(float(t["x"]), float(t["y"]),
+                             None if t.get("id") is None else int(t["id"]),
+                             bool(t.get("blocked", False)), side)
+            except (KeyError, TypeError, ValueError, AttributeError) as exc:
+                raise ValueError(f"known_tags.tags[{i}]: {exc}") from None
+            if not area.contains(k.x, k.y):
+                raise ValueError(f"known_tags.tags[{i}] ({k.x}, {k.y}) is outside the search area")
+            kt.append(k)
+        known_tags = tuple(kt)
+        if expected is None:
+            expected = len(known_tags)
+    known_order = str(known.get("order", "shortest"))
+    if known_order not in ("shortest", "listed"):
+        raise ValueError("known_tags.order must be 'shortest' or 'listed'")
 
     return MissionConfig(
         area=area,
@@ -168,7 +213,7 @@ def parse_config(cfg: dict) -> MissionConfig:
         overfly_after_m=_num(sweep, "overfly_after_m", 0.25, minimum=0.0),
         overfly_side_m=_num(sweep, "overfly_side_m", 0.45, positive=True),
         camera=CameraGeometry(
-            pitch_deg=_num(cam, "pitch_deg", 45.0),
+            pitch_deg=_num(cam, "pitch_deg", 90.0),
             fwd_offset_m=_num(cam, "fwd_offset_m", 0.0),
             right_offset_m=_num(cam, "right_offset_m", 0.0),
             down_offset_m=_num(cam, "down_offset_m", 0.0),
@@ -206,6 +251,7 @@ def parse_config(cfg: dict) -> MissionConfig:
             noise_m=_num(sim, "noise_m", 0.0, minimum=0.0),
             takeoff_s=_num(sim, "takeoff_s", 8.0, minimum=0.0),
             max_range_m=_num(sim, "max_range_m", 4.0, positive=True),
+            boxed=boxed,
         ),
         traj_speed_mps=(_num(traj, "speed_mps", 0.12, positive=True) if traj.get("enabled", False) else None),
         traj_corner_m=_num(traj, "corner_radius_m", 0.35, positive=True),
@@ -220,12 +266,17 @@ def parse_config(cfg: dict) -> MissionConfig:
         tag_spots=tuple((float(p[0]), float(p[1])) for p in (cfg.get("tag_spots") or [])),
         walls=walls,
         wall_clearance_m=_num(mis, "wall_clearance_m", 0.5, minimum=0.0),
-        look_again=bool(look.get("enabled", False)),
+        look_again=bool(look.get("enabled", False)) and not known_tags,   # known: hovers anyway
         look_trigger_after_s=_num(look, "trigger_after_s", 3.0, positive=True),
         look_moved_m=_num(look, "moved_m", 0.6, positive=True),
         look_offset_m=_num(look, "offset_m", 0.25, minimum=0.0),
         look_hover_s=_num(look, "hover_s", 5.0, positive=True),
         look_max=int(_num(look, "max_looks", 2, minimum=0)),
+        known_tags=known_tags,
+        known_hover_s=_num(known, "hover_s", 3.0, minimum=0.0),
+        known_blocked_hover_s=_num(known, "blocked_hover_s", 5.0, minimum=0.0),
+        known_open_side_shift_m=_num(known, "open_side_shift_m", 0.0, minimum=0.0),
+        known_order=known_order,
     )
 
 
@@ -258,24 +309,68 @@ def fences(cfg: MissionConfig, start: tuple[float, float] = (0.0, 0.0)) -> tuple
     return hard, soft
 
 
-def load_config(path: str | Path) -> MissionConfig:
-    p = Path(path)
-    if not p.exists():
-        raise FileNotFoundError(f"mission config not found: {p}")
+def _deep_merge(base: dict, over: dict) -> dict:
+    """base with over's sections on top. A section (top-level dict) merges key by key;
+    each key's value is replaced whole, so e.g. simulation.tags in the layout file
+    replaces the base's tags instead of adding to them."""
+    out = dict(base)
+    for k, v in over.items():
+        out[k] = {**out[k], **v} if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    return out
+
+
+def find_config(path: str | Path) -> Path:
+    """`path` as given if it exists; a bare relative name is also looked for in laptop/
+    and in Downloads, so `--config tag_layout.yaml` works from any folder."""
+    p = Path(path).expanduser()
+    if p.exists() or p.is_absolute():
+        if not p.exists():
+            raise FileNotFoundError(f"mission config not found: {p}")
+        return p
+    cands = [Path(__file__).resolve().parent / p, Path.home() / "Downloads" / p]
+    for c in cands:
+        if c.exists():
+            return c
+    raise FileNotFoundError(f"mission config not found: {p} (also looked in "
+                            + ", ".join(str(c.parent) for c in cands) + ")")
+
+
+def load_raw(path: str | Path, _seen: tuple = ()) -> dict:
+    """The YAML at `path` as a dict, with its `base:` file (if any) merged underneath.
+
+    A layout file from tag_layout_editor.html is short: `base: tag_mission_demo_traj.yaml`
+    plus the sections it changes (known_tags, tag_spots, simulation, ...). A relative base
+    is looked up next to the file, then in laptop/ (so a file saved in Downloads works).
+    """
+    p = find_config(path)
+    if p.resolve() in _seen:
+        raise ValueError(f"config base loop: {p}")
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
-    return parse_config(data)
+    base = data.pop("base", None)
+    if base:
+        bp = Path(base)
+        if not bp.is_absolute():
+            cands = [p.parent / bp, Path(__file__).resolve().parent / bp]
+            bp = next((c for c in cands if c.exists()), cands[0])
+        data = _deep_merge(load_raw(bp, _seen + (p.resolve(),)), data)
+    return data
+
+
+def load_config(path: str | Path) -> MissionConfig:
+    return parse_config(load_raw(path))
 
 
 def slow_zones(cfg: MissionConfig) -> list[tuple[float, float, float, float]]:
     """
     Boxes (min_x, max_x, min_y, max_y) where the camera can see a tag spot.
 
-    In trajectory mode the drone keeps its takeoff heading (+x), and the camera looks
-    forward and 45 deg down, so a spot is in view only while the drone is a little
-    short of it in x, whichever way the lane runs. A tag boxed in by a 0.15 m block
-    is visible over the wall only from about 0.3 m short of it.
+    In trajectory mode the drone keeps its takeoff heading (+x). With the camera looking
+    straight down (pitch_deg 90) a spot is in view while the drone is over it, so the
+    zone is centred on the spot (slow_before_m = slow_after_m); with the old 45 deg
+    forward tilt it was in view only from a little short of it in x. Known-tags mode
+    stops over each tag instead, so it has no slow zones.
     """
-    if not cfg.traj_slow_speed_mps:
+    if not cfg.traj_slow_speed_mps or cfg.known_tags:
         return []
     return [(sx - cfg.traj_slow_before_m, sx + cfg.traj_slow_after_m,
              sy - cfg.traj_slow_halfwidth_m, sy + cfg.traj_slow_halfwidth_m)
@@ -284,16 +379,83 @@ def slow_zones(cfg: MissionConfig) -> list[tuple[float, float, float, float]]:
 
 def mission_trajectory(cfg: MissionConfig, plan, start=(0.0, 0.0), end=None):
     """The (t, x, y) trajectory the mission flies for `plan` (same args everywhere).
-    Ends at `end` (default: back at `start`)."""
+    Ends at `end` (default: back at `start`).
+
+    Known-tags mode: comes to rest over each plan point that is a tag hover point and
+    hovers there (known_hover_s, or known_blocked_hover_s over a blocked tag), all in
+    one trajectory so it is uploaded once."""
+    import numpy as np
     from traj_gen import smooth_path
-    return smooth_path(plan, start, cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel,
-                       dt=cfg.traj_dt_s, end=end, slow_zones=slow_zones(cfg),
-                       slow_speed=cfg.traj_slow_speed_mps)
+    end = start if end is None else end
+    if not cfg.known_tags:
+        return smooth_path(plan, start, cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel,
+                           dt=cfg.traj_dt_s, end=end, slow_zones=slow_zones(cfg),
+                           slow_speed=cfg.traj_slow_speed_mps)
+    hover = {(round(x, 6), round(y, 6)): h for x, y, h, _ in known_stops(cfg, start)}
+    dt = cfg.traj_dt_s
+    rows = [np.array([[0.0, float(start[0]), float(start[1])]])]
+    prev = (float(start[0]), float(start[1]))
+    for p in [*plan, end]:
+        p = (float(p[0]), float(p[1]))
+        t0 = rows[-1][-1, 0]
+        if math.hypot(p[0] - prev[0], p[1] - prev[1]) > 1e-6:
+            seg = smooth_path([], prev, cfg.traj_speed_mps, cfg.traj_corner_m, cfg.traj_accel,
+                              dt=dt, end=p)
+            seg = seg[1:].copy()
+            seg[:, 0] += t0
+            rows.append(seg)
+            t0 = seg[-1, 0]
+        n = int(round(hover.get((round(p[0], 6), round(p[1], 6)), 0.0) / dt))
+        if n and p != tuple(end):
+            rows.append(np.column_stack([t0 + dt * np.arange(1, n + 1),
+                                         np.full(n, p[0]), np.full(n, p[1])]))
+        prev = p
+    return np.vstack(rows)
+
+
+def hover_point(cfg: MissionConfig, tag: KnownTag) -> tuple[float, float]:
+    """Where the drone hovers so the lens is over `tag` (heading +x, as in trajectory
+    mode), shifted known_open_side_shift_m towards a blocked tag's open side."""
+    x = tag.x - cfg.camera.fwd_offset_m
+    y = tag.y - cfg.camera.right_offset_m
+    if tag.blocked and cfg.known_open_side_shift_m:
+        sgn = 1.0 if tag.open_side[0] == "+" else -1.0
+        if tag.open_side[1] == "x":
+            x += sgn * cfg.known_open_side_shift_m
+        else:
+            y += sgn * cfg.known_open_side_shift_m
+    return x, y
+
+
+def known_stops(cfg: MissionConfig, start=(0.0, 0.0)):
+    """[(x, y, hover_s, KnownTag)] in flying order: every known tag once, then home.
+    "shortest" tries every order (up to 8 tags) and keeps the shortest round trip."""
+    import itertools
+    stops = [(*hover_point(cfg, t),
+              cfg.known_blocked_hover_s if t.blocked else cfg.known_hover_s, t)
+             for t in cfg.known_tags]
+    if cfg.known_order == "listed" or len(stops) < 2:
+        return stops
+
+    def cost(order):
+        return path_length([(s[0], s[1]) for s in order], start, return_to_start=True)
+    if len(stops) <= 8:
+        return list(min(itertools.permutations(stops), key=cost))
+    left, out, cur = list(stops), [], start     # nearest neighbour for big lists
+    while left:
+        nxt = min(left, key=lambda s: math.hypot(s[0] - cur[0], s[1] - cur[1]))
+        left.remove(nxt)
+        out.append(nxt)
+        cur = (nxt[0], nxt[1])
+    return out
 
 
 def mission_plan(cfg: MissionConfig, start=(0.0, 0.0)):
-    """The sweep waypoints the mission flies (same everywhere: mission, live map, tools)."""
+    """The waypoints the mission flies (same everywhere: mission, live map, tools):
+    the hover point over each known tag in known-tags mode, otherwise the sweep."""
     from sweep_planner import detour_spots, plan_sweep
+    if cfg.known_tags:
+        return [(x, y) for x, y, _, _ in known_stops(cfg, start)]
     plan = plan_sweep(cfg.area, cfg.lane_spacing_m, cfg.edge_margin_m, start, cfg.lane_axis,
                       cfg.sweep_entry, cfg.sweep_return, lane_offset_m=cfg.lane_offset_m,
                       far_end_back_m=cfg.far_end_back_m)

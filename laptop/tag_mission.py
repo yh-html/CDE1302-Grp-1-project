@@ -36,7 +36,7 @@ import threading
 from typing import Callable, Optional
 
 from drone_link import DroneLink
-from mission_config import MissionConfig, fences, mission_plan, mission_trajectory
+from mission_config import MissionConfig, fences, known_stops, mission_plan, mission_trajectory
 from mission_log import MissionLog, format_tag_table, format_truth_table, truth_errors
 from protocol import (TRAJ_CHUNK_PTS, TRAJ_MAX_PTS, NAV_FLYING, NAV_ROTATING, NAV_STUCK, NAV_TRAJ,
                       AtDebugPacket)
@@ -117,6 +117,8 @@ class TagMission:
 
         self.start_point = (0.0, 0.0)
         self.plan = mission_plan(cfg, self.start_point)
+        self._known_hover = {(round(x, 6), round(y, 6)): h
+                             for x, y, h, _ in known_stops(cfg, self.start_point)}
         # Hard fence: land where it is. Soft fence (just inside it): end the search, hold,
         # fly back to the start and land. Both stay wall_clearance_m inside arena_walls.
         self.fence, self.soft_fence = fences(cfg, self.start_point)
@@ -300,7 +302,9 @@ class TagMission:
         length = path_length(self.plan, self.start_point, return_to_start=True)
         eta = length / self.cfg.cruise_speed_mps
         a = self.cfg.area
-        return (f"search area x[{a.min_x:g},{a.max_x:g}] y[{a.min_y:g},{a.max_y:g}] m, "
+        mode = (f"known tags: hover over {len(self.cfg.known_tags)} listed tag(s), "
+                if self.cfg.known_tags else "")
+        return (f"{mode}search area x[{a.min_x:g},{a.max_x:g}] y[{a.min_y:g},{a.max_y:g}] m, "
                 f"{len(self.plan)} waypoints, {length:.1f} m flown incl. return, "
                 f"about {eta:.0f}s at {self.cfg.cruise_speed_mps:g} m/s")
 
@@ -413,7 +417,7 @@ class TagMission:
             pre_id = None
         duration = (len(pts) - 1) * dt_ms / 1000
         self.mlog.event("TRAJECTORY_START", points=len(pts), duration_s=round(duration, 1),
-                        source=self.cfg.traj_csv or "generated sweep",
+                        source=self.cfg.traj_csv or ("known tags" if self.cfg.known_tags else "generated sweep"),
                         preuploaded=pre_id is not None)
         watch = self.cfg.look_again and self._route is not None
         try:
@@ -625,6 +629,12 @@ class TagMission:
                 prev_misses = 0
                 self.mlog.event("WAYPOINT_REACHED", n=f"{i}/{total}",
                                 tags_found=self._found())
+                hover_s = self._known_hover.get((round(wx, 6), round(wy, 6)), 0.0)
+                if hover_s:                       # known-tags mode: hover over the tag
+                    t0 = self.clock.now()
+                    while self.clock.now() - t0 < hover_s:
+                        self._check_safety(allow_stop=True)
+                        self.clock.sleep(0.1)
             else:
                 self._missed += 1
                 prev_misses += 1

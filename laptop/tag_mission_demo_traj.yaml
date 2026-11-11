@@ -86,8 +86,10 @@ sweep:
 # lens is centred on the pocket, a 32 mm standoff length (assumed) and the FC hanging
 # 5 mm under the frame (body origin = FC centre). Measure the real lens position
 # on the assembled drone and replace these three offsets.
+# 11 Nov: camera moved to look straight down (parallel to the ground). Re-measure the three
+# offsets below on the new mount: fwd_offset_m also sets where known_tags mode hovers.
 camera:
-  pitch_deg: 45.0         # fixed nose-down tilt of the optical axis
+  pitch_deg: 90.0         # camera parallel to the ground, looking straight down (was 45 until 11 Nov)
   hfov_deg: 91.0          # field of view, firmware calibration (main/at_detect.c)
   vfov_deg: 82.0
   fwd_offset_m: 0.070     # lens forward of the drone body origin
@@ -148,13 +150,14 @@ trajectory:
   speed_mps: 0.144       # peak speed (was 0.12; +20% on 10 Nov); slower in curves and at start/end
   corner_radius_m: 0.35  # rounding of lane turns
   accel_mps2: 0.08
-  # Slow down where the camera can see a tag spot (spots listed in tag_spots). The heading is
-  # fixed, so the camera sees a spot only from just short of it in x, whichever way the lane
-  # runs. A tag boxed in by the 0.15 m foam block is visible over the wall only from about
-  # 0.3 m short of it: about 2 s at 0.144 m/s (about 4 detections at 2 Hz) vs about 5 s at 0.06 m/s.
+  # Slow down where the camera can see a tag spot (spots listed in tag_spots). Since 11 Nov the
+  # camera looks straight down, so a spot is in view while the drone is over it (about +-0.4 m
+  # in x, +-0.5 m in y at 0.5 m): the zone is centred on the spot. A boxed tag is seen over its
+  # 0.15 m walls only from within ~0.3 m of it (any distance on the open side).
+  # Not used in known_tags mode, which stops and hovers over each tag instead.
   slow_speed_mps: 0.06    # remove this line to fly at speed_mps everywhere
-  slow_before_m: 0.45     # slow zone: from this far short of a spot (x) ...
-  slow_after_m: 0.05      # ... to this far past it ...
+  slow_before_m: 0.30     # slow zone: from this far short of a spot (x) ... (0.45 with the 45 deg camera)
+  slow_after_m: 0.30      # ... to this far past it ... (0.05 with the 45 deg camera)
   slow_halfwidth_m: 0.3   # ... and this far either side of it (y)
   dt_s: 0.1              # firmware holds max 2400 points
   # csv: path/to/t_x_y_z.csv   # optional: fly this file instead of the generated sweep
@@ -171,7 +174,7 @@ look_again:
                           # the resume re-flew the route. Re-enable only after fixing that.
   trigger_after_s: 3.0    # look once the glimpse has not been seen for this long ...
   moved_m: 0.6            # ... or the drone is this far from where it last saw it
-  offset_m: 0.30          # look point = glimpse minus this in x (camera faces +x); 0.30 keeps the
-                          # rangefinder ~0.13 m clear of a 15 cm block's back wall and still sees the whole tag
+  offset_m: 0.0           # look point = glimpse minus this in x. 0 since the camera looks straight
+                          # down (11 Nov); was 0.30 with the 45 deg forward camera
   hover_s: 5.0            # hover this long at the look point (ends early once confirmed)
   max_looks: 2            # per mission; never the same spot twice

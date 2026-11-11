@@ -99,7 +99,7 @@ MAX_DETECTIONS = 32     # per frame; extras are counted, not returned
 
 # Drone (body) frame: x forward, y right, z down, origin at the drone centre.
 # Camera frame (AprilTag pose): x image right, y image down, z out of the lens.
-CAM_PITCH_DEG = 45.0                # lens looks forward, tilted 45° down
+CAM_PITCH_DEG = 90.0                # lens looks straight down (camera parallel to the ground, 11 Nov)
 CAM_POS_M     = (0.02, 0.0, 0.0)    # lens position in the drone frame
 
 _P = math.radians(CAM_PITCH_DEG)
@@ -117,8 +117,9 @@ def camera_to_body(t: tuple[float, float, float]) -> tuple[float, float, float]:
     Returns:
         (forward, right, down) from the drone centre, metres.
 
-    Example: a tag 1 m ahead of and 0.5 m below the lens is seen at
-    t = (0, -0.354, 1.061) and comes back as (1.02, 0.0, 0.5).
+    Example (camera looking straight down, top of the image forward): a tag
+    0.3 m ahead of and 0.5 m below the lens is seen at t = (0, -0.3, 0.5)
+    and comes back as (0.32, 0.0, 0.5).
     """
     return tuple(sum(R_BODY_CAM[i][j] * t[j] for j in range(3)) + CAM_POS_M[i]
                  for i in range(3))
