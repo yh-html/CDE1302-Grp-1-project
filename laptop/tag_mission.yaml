@@ -8,31 +8,69 @@
 # 0.45 m beyond the 0.9 m launch square, launch point at its centre, 1.8 m of search area to
 # the left of the launch line and 1.35 m to the right, three tags. The drone starts facing
 # the search area (x forward, y right; confirmed by the team). Confirm the exact start position
-# with the examiner on the day. Possible tag spots in the diagram (not used by the planner):
-# x = 1.35, 2.7, 4.0 and y = -1.35, +0.9.
+# with the examiner on the day.
+#
+# PDF diagram ("CDE1302-Mini Project-Flying Area.pdf"), drone frame (origin = launch-square
+# centre, +x forward, +y right):
+#   six possible tag spots, 0.45 m inside the search area edges:
+#     x = 1.35, 2.70, 4.05 and y = -1.35 (left row), +0.90 (right row)
+#   flight boundary 5.4 m x 4.5 m with the launch square against its back edge: x = -0.45 .. 4.95
+# The team sketch ("C:/cde1302_course/photos/arena/drone arena.SLDPRT", 10 Nov) put the spots at x = 1.5, 2.85,
+# 4.2 (+0.15 m) and y = -1.35, +0.95; being RE-MEASURED with a tape. Until then the PDF is used.
+#   arena walls (sketch): x = -1.5 .. 6.2, y = -2.5 .. 2.5 (7.7 m x 5 m), see arena_walls below.
 search_area:
   min_x: 0.9
   max_x: 4.5
   min_y: -1.8
   max_y: 1.35
 
+# Walls of the arena (MEASURED, same sketch). Both fences are cut back to stay
+# mission.wall_clearance_m inside these; the live map draws them.
+arena_walls:
+  min_x: -1.5
+  max_x: 6.2
+  min_y: -2.5
+  max_y: 2.5
+
+
+# The six possible tag spots from the Flying Area PDF (local frame). Used to slow the
+# trajectory where the camera can see a spot (trajectory.slow_speed_mps). Re-measure:
+# the team sketch had them 0.15 m further forward (x = 1.5, 2.85, 4.2).
+tag_spots:
+  - [1.35, -1.35]
+  - [2.70, -1.35]
+  - [4.05, -1.35]
+  - [1.35, 0.90]
+  - [2.70, 0.90]
+  - [4.05, 0.90]
+
 sweep:
-  # 1.0 m lanes cover the whole area (8 waypoints, 18.1 m, about 110 s at 0.2 m/s). Setting 2.6
-  # gives two lanes on the two tag rows (4 waypoints, 12.1 m, about 80 s) but only works if the
-  # tags are on the marked spots.
-  lane_spacing_m: 1.0     # ASSUMED. `run_tag_mission.py --plan-only` prints the camera-based maximum and a suggestion.
-  edge_margin_m: 0.3      # keep waypoints this far inside the boundary
+  # Two lanes, one straight down each row of tag spots (y = -1.35 and +0.90, x = 1.35..4.05):
+  # 2.25 m apart and 0.45 m in from the edges, exactly where the PDF spots are. In the
+  # simulator this found all 3 tags for all 20 spot combinations, 12.1 m / about 85 s.
+  # It assumes the tags are ON the marked spots; for tags anywhere use 0.8 / 0.3 (5 lanes).
+  lane_spacing_m: 2.25
+  edge_margin_m: 0.45
+  lane_offset_m: 0.0      # shift both lanes outwards (away from the area centre) by this much, to fly
+                          # beside the spots, not over them (e.g. a tag boxed in by foam blocks the
+                          # rangefinder could react to). 0.0 = straight over the spots. Up to 0.55
+                          # stays inside the soft fence, but keep it small: the camera sees ~0.66 m
+                          # either side and the drone drifts ~0.2 m.
   lane_axis: x            # lanes run along x (forward); "y" runs them sideways
+  entry: left             # fly sideways (left) from the start to the first lane, then turn up it.
+                          # right = rightmost lane first, lateral = nearest side, direct = old diagonal
+  return_leg: lateral     # come back down the last lane to level with the start, then sideways home
+                          # (direct = old diagonal)
 
 # Where the camera sits on the drone and how it is tilted.  This sets the tag
 # localisation error (15% of the marks): measure it on the assembled drone.
-# PLACEHOLDER: from the CAD of the stock-parts CameraHolder_TPU (codex/stock_mounts,
+# PLACEHOLDER: from the CAD of the stock-parts CameraHolder_TPU (cad/stock_mounts,
 # output/reports/GEOMETRY_BRIEF.md), NOT measured on the printed drone. It assumes the
 # lens is centred on the pocket, a 32 mm standoff length (assumed) and the FC hanging
 # 5 mm under the frame (body origin = FC centre). Measure the real lens position
 # on the assembled drone and replace these three offsets.
 camera:
-  pitch_deg: 45.0         # fixed nose-down tilt of the optical axis
+  pitch_deg: 90.0         # camera parallel to the ground, looking straight down (was 45 until 11 Nov)
   hfov_deg: 91.0          # field of view, firmware calibration (main/at_detect.c)
   vfov_deg: 82.0
   fwd_offset_m: 0.070     # lens forward of the drone body origin
@@ -46,10 +84,13 @@ detection:
   latency_s: 0.0          # ASSUMED. Delay between the camera frame and the packet; measure it
   update_threshold_m: 0.2 # print TAG_UPDATED when the fused position moves more than this
   expected_tags: 3        # Flying Area PDF: three tags
+  min_frames: 3           # a tag counts as found only after this many distinct camera frames
+                          # (10 Nov flight: tag 2 misread once as 14 ended the sweep early)
+  merge_radius_m: 0.5     # an ID this close to a stronger tag is a misread of it, not a new tag
   stop_when_all_found: false   # true: return as soon as expected_tags are found
 
 mission:
-  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (waypoints/
+  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (docs/archive/waypoints/
   # WAYPOINT_FLIGHT_TEST_GUIDE.md says about 0.2 m/s); the firmware's NAV_CRUISE_SPEED_MS is NOT
   # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
   cruise_speed_mps: 0.20
@@ -58,9 +99,16 @@ mission:
   arrival_radius_m: 0.25  # firmware NAV_ARRIVE_RADIUS_M
   min_leg_timeout_s: 15.0
   max_mission_s: 600.0    # stop searching after this long, then return and land
-  geofence_margin_m: 0.5  # land if outside the search area plus this
+  soft_fence_margin_m: 0.3   # past the search area by this: hold, fly back to start, land (before the hard fence)
+                             # was 0.15: the sideways legs run along x = 0 and a 0.18 m drift back tripped it (10 Nov 17:47)
+  geofence_margin_m: 0.45 # land if outside the search area plus this; 0.45 puts the hard fence
+                          # exactly on the PDF flight boundary front (4.5+0.45 = 4.95) and back
+                          # (0-0.45 = launch-square back edge). Was 0.5 (reached x 5.15 / 5.0).
+  wall_clearance_m: 0.5   # ...but never let the hard geofence come closer than this to arena_walls
   stale_timeout_s: 3.0    # land if telemetry is older than this
   connect_timeout_s: 30.0
+  max_start_heading_deg: 0    # OFF (11 Nov: refused takeoff with the drone square in the box). 3 = refuse if PX4 heading is further than 3 deg from 0
+                             # (power-cycle in the start box facing forward). 0 = no check
   land_wait_s: 8.0
   max_consecutive_misses: 3
   output_dir: mission_logs   # relative to laptop/
@@ -69,7 +117,7 @@ mission:
 simulation:
   noise_m: 0.02           # Gaussian noise on the camera-frame translation
   takeoff_s: 8.0
-  tags:
-    1: [1.35, -1.35]        # three of the six possible spots in the Flying Area diagram
-    2: [4.0, -1.35]
-    3: [2.7, 0.9]
+  tags:                     # three of the six PDF spots; IDs as seen on the 10 Nov flights
+    2: [1.35, -1.35]
+    4: [2.7, 0.9]
+    6: [4.05, 0.9]

@@ -15,7 +15,7 @@ Example:
         --waypoint 0.5,0.0 --waypoint=-0.5,0.5
 
     python3 laptop/simple_waypoint_mission.py --drone-id 22 --confirm \
-        --waypoints-file waypoints/waypoints_example.txt
+        --waypoints-file docs/archive/waypoints/waypoints_example.txt
 
 Exit code: 0 all waypoints reached, 1 error or waypoint timeout, 130 Ctrl+C.
 """

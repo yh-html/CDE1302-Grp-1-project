@@ -1,0 +1,13 @@
+time,t_mission_s,event,details
+2026-11-11T19:58:25.268+08:00,,WAITING_FOR_TELEMETRY,"{""drone"": 1}"
+2026-11-11T19:58:25.363+08:00,,LINK_ESTABLISHED,"{""drone"": 1, ""x"": -0.0, ""y"": -0.0, ""heading_rad"": 6.28}"
+2026-11-11T19:58:25.363+08:00,,PLAN,"{""detail"": ""search area x[0.9,4.5] y[-1.8,1.35] m, 6 waypoints, 12.6 m flown incl. return, about 63s at 0.2 m/s""}"
+2026-11-11T19:58:25.363+08:00,0.0,DETECT_ONLY_START,"{""note"": ""no commands are sent; carry the drone by hand along the sweep, Ctrl+C to finish""}"
+2026-11-11T19:58:25.363+08:00,0.0,POSITION,"{""x"": -0.0, ""y"": -0.0, ""heading_deg"": 360, ""inside_area"": true, ""tags_found"": 0}"
+2026-11-11T19:58:30.393+08:00,5.031,POSITION,"{""x"": 0.16, ""y"": -0.03, ""heading_deg"": 3, ""inside_area"": true, ""tags_found"": 0}"
+2026-11-11T19:58:35.421+08:00,10.062,POSITION,"{""x"": 2.4, ""y"": 0.03, ""heading_deg"": 358, ""inside_area"": true, ""tags_found"": 0}"
+2026-11-11T19:58:40.452+08:00,15.078,POSITION,"{""x"": 5.43, ""y"": 0.04, ""heading_deg"": 10, ""inside_area"": false, ""tags_found"": 0}"
+2026-11-11T19:58:45.483+08:00,20.109,POSITION,"{""x"": 2.55, ""y"": -0.03, ""heading_deg"": 5, ""inside_area"": true, ""tags_found"": 0}"
+2026-11-11T19:58:50.509+08:00,25.14,POSITION,"{""x"": -0.05, ""y"": 0.14, ""heading_deg"": 357, ""inside_area"": true, ""tags_found"": 0}"
+2026-11-11T19:58:53.827+08:00,28.468,DETECT_ONLY_STOPPED,"{""reason"": ""Ctrl+C""}"
+2026-11-11T19:58:53.827+08:00,28.468,DETECT_ONLY_END,"{""tags"": 0}"

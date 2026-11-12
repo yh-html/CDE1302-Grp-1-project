@@ -1,0 +1,7 @@
+time,t_mission_s,event,details
+2026-11-11T20:01:30.151+08:00,,WAITING_FOR_TELEMETRY,"{""drone"": 1}"
+2026-11-11T20:01:30.201+08:00,,LINK_ESTABLISHED,"{""drone"": 1, ""x"": -0.01, ""y"": 0.0, ""heading_rad"": 0.0}"
+2026-11-11T20:01:30.201+08:00,,PLAN,"{""detail"": ""search area x[0.9,4.5] y[-1.8,1.35] m, 6 waypoints, 12.6 m flown incl. return, about 63s at 0.2 m/s""}"
+2026-11-11T20:01:37.496+08:00,0.0,TAKEOFF_CMD_SENT,"{""drone"": 1}"
+2026-11-11T20:01:41.962+08:00,4.468,TRAJECTORY_PREUPLOADED,"{""points"": 1210, ""chunks"": 16, ""passes"": 2}"
+2026-11-11T20:01:45.261+08:00,7.765,ABORT,"{""reason"": ""interrupted by operator""}"

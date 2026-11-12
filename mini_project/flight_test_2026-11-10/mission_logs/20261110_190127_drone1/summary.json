@@ -1,0 +1,89 @@
+{
+  "mode": "mission",
+  "truth_errors": null,
+  "drone_id": 1,
+  "exit_code": 0,
+  "exit_reason": "completed",
+  "search_stopped": "all 3 expected tags found, hovered 4s",
+  "hover_for_go_s": null,
+  "waypoints_planned": 6,
+  "waypoints_reached": 0,
+  "waypoints_missed": 0,
+  "takeoff_cmd_time": "2026-11-10T19:01:33.151+08:00",
+  "landing_cmd_time": "2026-11-10T19:03:29.650+08:00",
+  "mission_time_to_landing_cmd_s": 116.5,
+  "tags": [
+    {
+      "id": 2,
+      "x": 1.187,
+      "y": -1.5,
+      "sightings": 34,
+      "spread_m": 0.065
+    },
+    {
+      "id": 4,
+      "x": 2.927,
+      "y": 0.693,
+      "sightings": 61,
+      "spread_m": 0.079
+    },
+    {
+      "id": 6,
+      "x": 4.264,
+      "y": 0.462,
+      "sightings": 26,
+      "spread_m": 0.072
+    }
+  ],
+  "ignored_ids": [
+    {
+      "id": 7,
+      "x": 4.27,
+      "y": 0.383,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 8,
+      "x": 4.216,
+      "y": 0.433,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 10,
+      "x": 4.302,
+      "y": 0.422,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 12,
+      "x": 1.157,
+      "y": -1.54,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 13,
+      "x": 1.4,
+      "y": -1.444,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 14,
+      "x": 1.429,
+      "y": -1.516,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    },
+    {
+      "id": 18,
+      "x": 4.305,
+      "y": 0.418,
+      "frames": 1,
+      "reason": "only 1 camera frame(s), need 3"
+    }
+  ]
+}

@@ -132,3 +132,78 @@ def test_swath_matches_what_the_simulated_camera_sees():
     half = swath_halfwidth_m(CAM, 0.5, 3.0, 30.0)
     assert _tag_seen_flying_a_lane(half - 0.06)         # just inside: seen
     assert not _tag_seen_flying_a_lane(half + 0.10)     # just outside: never seen
+
+
+def test_left_entry_flies_sideways_then_up_the_leftmost_lane():
+    from sweep_planner import Area, plan_sweep
+    area = Area(0.9, 4.5, -1.8, 1.35)
+    plan = plan_sweep(area, 1.0, 0.3, (0.0, 0.0), "x", entry="left")
+    assert plan[0] == pytest.approx((0.0, -1.5))            # sideways, level with the start
+    assert plan[1] == pytest.approx((1.2, -1.5))            # then straight up the left lane
+    assert min(y for _, y in plan) == -1.5
+    direct = plan_sweep(area, 1.0, 0.3, (0.0, 0.0), "x")
+    assert len(plan) == len(direct) + 1
+
+
+def test_right_entry_starts_on_the_rightmost_lane():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 1.0, 0.3, (0.0, 0.0), "x", entry="right")
+    assert plan[0] == pytest.approx((0.0, 1.05)) and plan[1] == pytest.approx((1.2, 1.05))
+
+
+def test_lateral_return_comes_down_the_last_lane_then_sideways_home():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 1.0, 0.3, (0.0, 0.0), "x",
+                      entry="left", return_leg="lateral")
+    assert plan[-2] == pytest.approx((1.2, 1.05))      # bottom of the last lane
+    assert plan[-1] == pytest.approx((0.0, 1.05))      # level with the start
+    # every leg, including start -> first and last -> start, is axis-aligned
+    legs = zip([(0.0, 0.0), *plan], [*plan, (0.0, 0.0)])
+    assert all(abs(a[0] - b[0]) < 1e-9 or abs(a[1] - b[1]) < 1e-9 for a, b in legs)
+
+
+def _cfg_with_walls(walls, clearance=0.5):
+    from mission_config import parse_config
+    return parse_config({
+        "search_area": {"min_x": 0.9, "max_x": 4.65, "min_y": -1.8, "max_y": 1.4},
+        "arena_walls": walls,
+        "mission": {"geofence_margin_m": 0.5, "wall_clearance_m": clearance},
+    })
+
+
+def test_hard_fence_is_kept_clear_of_the_walls():
+    from mission_config import fences
+    hard, soft = fences(_cfg_with_walls({"min_x": -1.5, "max_x": 6.2, "min_y": -2.5, "max_y": 2.5}))
+    assert hard.min_y == pytest.approx(-2.0)        # was -2.3: 0.2 m from the left wall
+    assert hard.max_y == pytest.approx(1.9)         # already > 0.5 m from the right wall
+    assert hard.min_x <= soft.min_x and soft.max_y <= hard.max_y - 0.05 + 1e-9
+
+
+def test_search_area_too_close_to_a_wall_is_rejected():
+    from mission_config import fences
+    with pytest.raises(ValueError, match="wall_clearance_m"):
+        fences(_cfg_with_walls({"min_x": -1.5, "max_x": 6.2, "min_y": -2.0, "max_y": 2.5}))
+
+
+def _pdf_lanes(offset):
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.9, 4.5, -1.8, 1.35), 2.25, 0.45, (0.0, 0.0), "x",
+                      entry="left", return_leg="lateral", lane_offset_m=offset)
+    return plan, sorted({round(y, 6) for x, y in plan if x > 1.0})
+
+
+def test_pdf_two_lanes_sit_on_the_tag_rows():
+    plan, lanes = _pdf_lanes(0.0)
+    assert lanes == pytest.approx([-1.35, 0.90])
+    assert sorted({round(x, 6) for x, _ in plan if x > 0}) == pytest.approx([1.35, 4.05])
+
+
+def test_lane_offset_moves_lanes_away_from_the_centre():
+    _, lanes = _pdf_lanes(0.3)
+    assert lanes == pytest.approx([-1.65, 1.20])
+
+
+def test_lane_offset_keeps_a_centre_lane_in_place():
+    from sweep_planner import Area, plan_sweep
+    plan = plan_sweep(Area(0.0, 2.0, -1.0, 1.0), 1.0, 0.0, (0.0, 0.0), "x", lane_offset_m=0.2)
+    assert sorted({round(y, 6) for _, y in plan}) == pytest.approx([-1.2, 0.0, 1.2])

@@ -1,0 +1,17 @@
+{
+  "mode": "detect-only",
+  "truth_errors": null,
+  "drone_id": 1,
+  "exit_code": 0,
+  "exit_reason": "completed",
+  "search_stopped": "",
+  "hover_for_go_s": null,
+  "waypoints_planned": 6,
+  "waypoints_reached": 0,
+  "waypoints_missed": 0,
+  "takeoff_cmd_time": null,
+  "landing_cmd_time": null,
+  "mission_time_to_landing_cmd_s": null,
+  "tags": [],
+  "ignored_ids": []
+}

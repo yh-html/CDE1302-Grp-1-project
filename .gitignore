@@ -49,10 +49,5 @@ envs/
 /.installer.info
 /.nonadmin
 /LICENSE_PYTHON.txt
-/Lecture Notes/
-/Labs/
-/Pictures/
-/Assignment/
-/CDE1302_UAV/
-/codex/*/output/
+/cad/*/output/
 mini_project/report/*.pdf

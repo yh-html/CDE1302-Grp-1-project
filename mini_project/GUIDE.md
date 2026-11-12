@@ -1,7 +1,7 @@
 # CDE1302 mini-project: complete guide
 
 Written 17 Oct 2026. Everything here comes from the repo's own docs (`README.md`,
-`laptop/TEST_GUIDE.md`, `mini_project/mission/DEMO_PLAN.md`) or from checks run while
+`laptop/TEST_GUIDE.md`, `docs/archive/mini_project_mission/DEMO_PLAN.md`) or from checks run while
 building this. Things that were **not** tested are marked **UNTESTED**.
 
 Deadlines: assignment **6 Nov 2026, 11:59 PM**. Mini-project demo **weeks 12-13**
@@ -82,12 +82,12 @@ abnormal flight from a `.ulg` with AI, verified experimentally.
 | Work | Where | State |
 |---|---|---|
 | Stock frame analysis (STL holes, thicknesses, guard dims, mass) | `mini_project/stock_analysis/` | done, measured from the Profs' STLs |
-| Stock frame improvements (camera cheeks, dowels, TPU skid shoes, thicker ribs) | `codex/stock_plus/` | built by the other Claude Code session: 38 pass / 0 fail / 4 pending |
-| Astra (own frame redesign) | `codex/drone_cad_v2/` | **dropped** (6 failed checks, built on guessed hardware) |
+| Stock frame improvements (camera cheeks, dowels, TPU skid shoes, thicker ribs) | `cad/stock_plus/` | built by the other Claude Code session: 38 pass / 0 fail / 4 pending |
+| Astra (own frame redesign) | `cad/drone_cad_v2/` | **dropped** (6 failed checks, built on guessed hardware) |
 | Camera offsets for under-nose mount + tests | `laptop/tag_debug.py`, `laptop/tests/test_tag_debug_mount.py` | done, but **Astra's** offsets: redo for the stock/stock_plus camera |
 | Stuck-detection bug | `laptop/stuck_monitor.py` | fixed (progress measured from an anchor, not the last packet) |
 | Stale PX4-status test | `laptop/tests/test_protocol.py` | skipped with reason; real packet format now tested |
-| SAFMC rules digest, demo plan, risk draft | `mini_project/mission/` | drafted by an agent, **not yet checked against the booklet by you** |
+| SAFMC rules digest, demo plan, risk draft | `docs/archive/mini_project_mission/` | drafted by an agent, **not yet checked against the booklet by you** |
 | Webots planner sim | `mini_project/webots/` | ran: 2 explorers + 12 relays, 5.03 m relay; kinematic only |
 | Audit scripts | `mini_project/audit/` | snapshot + audit of agent work |
 
@@ -145,7 +145,7 @@ Then the tools (examples use drone **22**; use your ID):
 | Camera + AprilTags | `& $py laptop/tag_stream.py --esp-ip 192.168.1.222 --detail` |
 | Link check, no flight commands | `& $py laptop/simple_arm_takeoff_land.py --drone-id 22 --monitor-only` |
 | Arm, take off to 0.5 m, hover, land | `& $py laptop/simple_arm_takeoff_land.py --drone-id 22` (type `ARM-22`) |
-| Waypoints | `& $py laptop/simple_waypoint_mission.py --waypoints-file waypoints/waypoints_example.txt --confirm --drone-id 22` |
+| Waypoints | `& $py laptop/simple_waypoint_mission.py --waypoints-file docs/archive/waypoints/waypoints_example.txt --confirm --drone-id 22` |
 | Trajectory CSV | `& $py laptop/send_trajectory.py --drone-id 22 --takeoff --trajectory trajectory/circle_traj.csv --confirm` |
 | **Mini-project mission (use this)** | `& $py laptop/run_tag_mission.py --drone-id 22` (see "Tag mission" below) |
 | Swarm mission (explore + relay), **out of scope** | `& $py laptop/run_mission.py --config laptop/setup.yaml` |
@@ -180,7 +180,7 @@ geometry, tag localisation accuracy, or the detection latency.
 Known limits:
 - **Speed (corrected 17 Oct).** The firmware constant `NAV_CRUISE_SPEED_MS` (0.10) is **not used for control**
   (it only appears in a log line). Waypoint mode sends the goal as a position setpoint, so the real speed is set by
-  PX4's `MPC_XY_VEL_MAX` on the flight controller; `waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md` says about 0.2 m/s. I
+  PX4's `MPC_XY_VEL_MAX` on the flight controller; `docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md` says about 0.2 m/s. I
   have not read the parameter from your drone. The default 4 x 4 m sweep is about 150 s at 0.2 m/s (282 s at 0.1,
   72 s at 0.5): `run_tag_mission.py --plan-only` prints the table. Completion time is 15% of the marks.
   Order of work: (1) fly once and read "max horizontal speed" from `analyze_flight.py` to learn the real speed;
@@ -300,7 +300,7 @@ macOS/Linux or Git Bash, **UNTESTED** here):
    .\audit.ps1 -Reproduce
    ```
    Expect FAILs only for files the other Claude Code session changes outside the old lanes
-   (`codex\stock_plus`, new folders). Read `audit_report.md` and judge each one.
+   (`cad\stock_plus`, new folders). Read `audit_report.md` and judge each one.
 4. **Firmware compiles** (section 4): `idf.py build`. Passed on 17 Oct (exit 0). The only warning in our code is
    the unused `inject_peers_into_histogram` (see section 8).
 5. **Hardware ladder, never skipping a rung** (from `laptop/TEST_GUIDE.md` and `DEMO_PLAN.md`):
@@ -320,11 +320,11 @@ macOS/Linux or Git Bash, **UNTESTED** here):
 | Assignment results and figures | `MATLAB -batch "run('min_snap_fly_gate_task1.m')"` in `C:\cde1302\Assignment` |
 | Report | `cd Assignment\report; latexmk -pdf report.tex` |
 | Submission zip | `cd Assignment; powershell -ExecutionPolicy Bypass -File .\make_submission.ps1` |
-| Stock STL analysis | `& 'C:\cde1302\codex\drone_cad\.venv\Scripts\python.exe' mini_project\stock_analysis\analyze_stock.py` |
-| Stock frame improvements | `cd codex\stock_plus\src; ..\..\drone_cad\.venv\Scripts\python.exe -u build.py` (rib step about 15 min; cached) |
+| Stock STL analysis | `& 'C:\cde1302\codex\drone_cad\.venv\Scripts\python.exe' mini_project\stock_analysis\analyze_stock.py` (the .venv was left in `codex\drone_cad\` when the CAD moved to `cad\`) |
+| Stock frame improvements | `cd cad\stock_plus\src; C:\cde1302\codex\drone_cad\.venv\Scripts\python.exe -u build.py` (rib step about 15 min; cached) |
 | Webots sim | `python mini_project\webots\build_world.py`, then run `webots.exe --batch --mode=fast --port=1247 mini_project\webots\worlds\safmc_explore_relay.wbt` (see `mini_project/webots/AGENT_REPORT.md`) |
 | Audit baseline | `mini_project\audit\snapshot.ps1` (once, before agents), then `audit.ps1` |
-| Parts to print | `Actual Mod STL of drone frame\` (frame x1, panel x1, leg x2 mirrored, guard x4 rotated 90 deg each) or the `codex\stock_plus\output\stl` versions |
+| Parts to print | `C:\cde1302_course\frame_design\Actual Mod STL of drone frame\` (frame x1, panel x1, leg x2 mirrored, guard x4 rotated 90 deg each) or the `cad\stock_plus\output\stl` versions |
 
 ---
 
@@ -332,11 +332,11 @@ macOS/Linux or Git Bash, **UNTESTED** here):
 
 **This week**
 1. Assignment: edit the `[STUDENT TO CONFIRM]` line, open the PDF, rebuild the zip, submit before 6 Nov.
-2. Decide stock or stock_plus. Review `codex/stock_plus/README.md` and its 4 pending items before printing.
+2. Decide stock or stock_plus. Review `cad/stock_plus/README.md` and its 4 pending items before printing.
 3. Print **one guard** first and check it on a motor and a prop. Then frame, panel, legs.
 4. Measure and record: parts and all-up mass, CG, motor screw depth, camera board/lens position.
 5. Point `laptop/tag_debug.py` at the real camera position (it still has Astra's under-nose offsets).
-6. Compare `laptop/setup.yaml` arena against `mini_project/mission/RULES_DIGEST.md`
+6. Compare `laptop/setup.yaml` arena against `docs/archive/mini_project_mission/RULES_DIGEST.md`
    (field about 20 m x 20 m, Start Area 20 x 6 m, max height 1.4 m).
 7. Read `RULES_DIGEST.md`, `DEMO_PLAN.md`, `RISK_ASSESSMENT_DRAFT.md` against the SAFMC booklet yourself.
 

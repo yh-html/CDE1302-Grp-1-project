@@ -47,7 +47,6 @@ import yaml
 
 from crumb_store import CrumbStore
 from exploration import ExplorationDirector
-from protocol import VFH_BINS
 
 # How many recent crumbs to average for approach-direction estimation
 _APPROACH_CRUMBS = 5

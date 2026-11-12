@@ -1,0 +1,32 @@
+{
+  "mode": "mission",
+  "truth_errors": null,
+  "drone_id": 1,
+  "exit_code": 1,
+  "exit_reason": "geofence breach at (-1.08, -0.36)",
+  "search_stopped": "",
+  "hover_for_go_s": 3.1,
+  "waypoints_planned": 6,
+  "waypoints_reached": 0,
+  "waypoints_missed": 0,
+  "takeoff_cmd_time": "2026-11-11T21:12:05.635+08:00",
+  "landing_cmd_time": "2026-11-11T21:14:40.764+08:00",
+  "mission_time_to_landing_cmd_s": 155.125,
+  "tags": [
+    {
+      "id": 2,
+      "x": 1.412,
+      "y": -1.177,
+      "sightings": 105,
+      "spread_m": 0.048
+    },
+    {
+      "id": 4,
+      "x": 2.767,
+      "y": -0.795,
+      "sightings": 51,
+      "spread_m": 0.046
+    }
+  ],
+  "ignored_ids": []
+}

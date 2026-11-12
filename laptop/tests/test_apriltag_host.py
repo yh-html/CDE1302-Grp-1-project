@@ -5,6 +5,7 @@ code table as components/esp-apriltag, so the IDs here are the IDs the drone
 would report.
 """
 
+import math
 import shutil
 import sys
 from pathlib import Path
@@ -18,6 +19,8 @@ np = pytest.importorskip("numpy")
 
 import apriltag_host
 from apriltag_host import (
+    CAM_PITCH_DEG,
+    CAM_POS_M,
     EXPECTED_NCODES,
     FIRMWARE_INTRINSICS,
     GATE_MIN_MARGIN,
@@ -218,6 +221,53 @@ def test_a_smaller_tag_is_further_away(detector, dictionary):
 
 
 # ---------------------------------------------------------------------------
+# Drone-frame pose (camera pitched CAM_PITCH_DEG nose-down)
+# ---------------------------------------------------------------------------
+
+COS_P = math.cos(math.radians(CAM_PITCH_DEG))
+SIN_P = math.sin(math.radians(CAM_PITCH_DEG))
+
+
+def seen_by_camera(fwd, right, down):
+    """Camera-frame t of a point at (fwd, right, down) m from the lens."""
+    return (right, -SIN_P * fwd + COS_P * down, COS_P * fwd + SIN_P * down)
+
+
+@pytest.mark.parametrize("where", [(1.0, 0.0, 0.5),     # on the floor ahead
+                                   (0.0, 0.0, 0.5),     # straight below
+                                   (1.0, 0.3, 0.0)])    # level, to the right
+def test_t_body_undoes_the_camera_tilt(where):
+    det = make_det(t=seen_by_camera(*where))
+    expect = tuple(a + b for a, b in zip(where, CAM_POS_M))
+    assert det.t_body == pytest.approx(expect)
+
+
+def test_R_body_maps_camera_axes_into_drone_frame():
+    det = make_det(R=(1, 0, 0, 0, 1, 0, 0, 0, 1))     # tag axes = camera axes
+    R = det.R_body
+    assert R[0::3] == pytest.approx((0, 1, 0))            # image right = drone right
+    assert R[2::3] == pytest.approx((COS_P, 0, SIN_P))    # lens: forward and down
+
+
+def test_no_pose_means_no_drone_frame_pose():
+    det = make_det(pose_valid=False, t=None, R=None, pose_err=None)
+    assert det.t_body is None and det.R_body is None
+
+
+def test_t_body_signs_match_the_detector(detector, dictionary):
+    """Higher in the image = further ahead and less far down; image right =
+    drone right. Same-size tags, so the same distance from the lens."""
+    high = detector.detect(render(dictionary, 5, side=60, x0=130, y0=10))[0]
+    low = detector.detect(render(dictionary, 5, side=60, x0=130, y0=170))[0]
+    right = detector.detect(render(dictionary, 5, side=60, x0=250, y0=90))[0]
+    assert high.t_body[0] > low.t_body[0]
+    assert high.t_body[2] < low.t_body[2]
+    assert right.t_body[1] > 0.1
+    R = np.array(high.R_body).reshape(3, 3)
+    assert R @ R.T == pytest.approx(np.eye(3), abs=1e-6)
+
+
+# ---------------------------------------------------------------------------
 # The firmware quality gate
 # ---------------------------------------------------------------------------
 
@@ -280,7 +330,7 @@ def test_a_hamming_1_tag_passes_the_gate_and_is_posed(detector, dictionary):
 
 
 def test_custom_parameters_reach_the_detector(dictionary):
-    """The CLI can override the firmware's parameters (tag_stream --decimate)."""
+    """The CLI can override the firmware's parameters (tag_stream_legacy --decimate)."""
     params = DetectorParams(quad_decimate=1.0)
     with Detector(params) as det:
         assert det.params.quad_decimate == 1.0
@@ -385,7 +435,7 @@ def test_detect_rejects_anything_but_a_contiguous_uint8_image(detector):
 def test_detect_leaves_the_caller_s_image_alone(dictionary, params):
     """apriltag.c only copies the image for the decimate step (quad_decimate >
     1); at 1.0 the quad_sigma blur lands in the caller's buffer, so
-    `tag_stream.py --decimate 1.0` would display and save a blurred frame."""
+    `tag_stream_legacy.py --decimate 1.0` would display and save a blurred frame."""
     img = render(dictionary, 5)
     before = img.copy()
     with Detector(params) as det:

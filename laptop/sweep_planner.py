@@ -46,6 +46,11 @@ class Area:
         return Area(self.min_x - margin, self.max_x + margin,
                     self.min_y - margin, self.max_y + margin)
 
+    def intersection(self, other: "Area") -> "Area":
+        """Overlap of the two areas; ValueError if they do not overlap."""
+        return Area(max(self.min_x, other.min_x), min(self.max_x, other.max_x),
+                    max(self.min_y, other.min_y), min(self.max_y, other.max_y))
+
 
 def path_length(points: list[Point], start: Point = (0.0, 0.0),
                 return_to_start: bool = False) -> float:
@@ -59,6 +64,21 @@ def path_length(points: list[Point], start: Point = (0.0, 0.0),
     return total
 
 
+def square_corner(home: Point, p: Point, lane_axis: str = "x") -> Point | None:
+    """
+    Corner that turns home <-> p into two legs at 90 deg: one along the lanes
+    (level with `home`) and one across them (in line with `p`'s lane).
+    None if home and p are already in a straight line along an axis.
+    """
+    if lane_axis == "x":
+        corner = (home[0], p[1])
+    else:
+        corner = (p[0], home[1])
+    if abs(p[0] - home[0]) < 1e-9 or abs(p[1] - home[1]) < 1e-9:
+        return None
+    return corner
+
+
 def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
     """Evenly spaced lane centres from lo to hi, no further apart than spacing."""
     span = hi - lo
@@ -69,7 +89,9 @@ def _lane_positions(lo: float, hi: float, spacing: float) -> list[float]:
 
 
 def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
-               start: Point = (0.0, 0.0), lane_axis: str = "x") -> list[Point]:
+               start: Point = (0.0, 0.0), lane_axis: str = "x",
+               entry: str = "direct", return_leg: str = "direct",
+               lane_offset_m: float = 0.0, far_end_back_m: float = 0.0) -> list[Point]:
     """
     Lawn-mower waypoints covering `area`.
 
@@ -77,6 +99,24 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
     The area is shrunk by edge_margin_m so the drone never aims at the
     boundary.  Lane order and direction are chosen to minimise the flown
     distance from `start` and back to it.
+
+    entry: how the drone gets from `start` to the first lane.
+      "direct"  - straight (usually diagonal) line to the first lane corner.
+      "lateral" - fly across the lanes first (level with `start`) until in
+                  line with the first lane, then turn 90 deg up it.  Adds one
+                  waypoint at the front of the plan.
+      "left" / "right" - "lateral", and the first lane is the one furthest
+                  left (min y) / right (max y).  lane_axis "x" only.
+    return_leg: how the drone gets from the last lane back to `start`.
+      "direct"  - straight (usually diagonal) line home.
+      "lateral" - carry on along the last lane until level with `start`, then
+                  fly across the lanes to it.  Adds one waypoint at the end
+                  (the mission's return-to-start leg is then the sideways one).
+    lane_offset_m: shift every lane sideways by this much, away from the
+      centre of `area` (a lane exactly on the centre line stays put).  Used to
+      fly beside known tag spots instead of straight over them.
+    far_end_back_m: end every lane this much short of the far edge (the edge
+      away from `start`), e.g. so the drone stops short of the far tag spots.
     """
     if lane_spacing_m <= 0:
         raise ValueError("lane_spacing_m must be positive")
@@ -84,6 +124,14 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
         raise ValueError("edge_margin_m must be non-negative")
     if lane_axis not in ("x", "y"):
         raise ValueError("lane_axis must be 'x' or 'y'")
+    if entry not in ("direct", "lateral", "left", "right"):
+        raise ValueError("entry must be 'direct', 'lateral', 'left' or 'right'")
+    if entry in ("left", "right") and lane_axis != "x":
+        raise ValueError("entry 'left'/'right' needs lane_axis 'x'")
+    if return_leg not in ("direct", "lateral"):
+        raise ValueError("return_leg must be 'direct' or 'lateral'")
+    if lane_offset_m < 0:
+        raise ValueError("lane_offset_m must be non-negative")
 
     # Work in (u, v): u runs along a lane, v steps between lanes.
     if lane_axis == "x":
@@ -100,12 +148,21 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
         return lo + edge_margin_m, hi - edge_margin_m
 
     u_lo, u_hi = shrink(u_lo, u_hi)
+    if far_end_back_m:
+        if far_end_back_m < 0 or u_hi - far_end_back_m <= u_lo:
+            raise ValueError("far_end_back_m must be >= 0 and leave the lanes some length")
+        u_hi -= far_end_back_m
     v_lo, v_hi = shrink(v_lo, v_hi)
     lanes = _lane_positions(v_lo, v_hi, lane_spacing_m)
+    if lane_offset_m > 0:
+        centre = (v_lo + v_hi) / 2
+        lanes = [v if abs(v - centre) < 1e-9
+                 else v + math.copysign(lane_offset_m, v - centre) for v in lanes]
 
     best: list[Point] | None = None
     best_cost = math.inf
-    for ordered in (lanes, lanes[::-1]):
+    orders = {"left": [lanes], "right": [lanes[::-1]]}.get(entry, [lanes, lanes[::-1]])
+    for ordered in orders:
         for first_forward in (True, False):
             pts: list[Point] = []
             forward = first_forward
@@ -117,6 +174,14 @@ def plan_sweep(area: Area, lane_spacing_m: float, edge_margin_m: float,
                                              p[1] - pts[-1][1]) > 1e-9:
                         pts.append(p)
                 forward = not forward
+            if pts and entry != "direct":
+                corner = square_corner(start, pts[0], lane_axis)
+                if corner is not None:
+                    pts.insert(0, corner)
+            if pts and return_leg == "lateral":
+                corner = square_corner(start, pts[-1], lane_axis)
+                if corner is not None:
+                    pts.append(corner)
             cost = path_length(pts, start, return_to_start=True)
             if cost < best_cost - 1e-9:
                 best, best_cost = pts, cost
@@ -171,3 +236,40 @@ def suggest_lane_spacing_m(halfwidth_m: float, safety: float = 0.8) -> float:
     """Lane spacing that keeps `safety` x the gap-free maximum (2 x halfwidth)."""
     return 2.0 * halfwidth_m * safety
 
+
+
+def detour_spots(route: list[Point], spots, before_m: float, after_m: float,
+                 side_m: float, centre_y: float, tol_m: float = 0.05) -> list[Point]:
+    """
+    Keep the drone (and its downward rangefinder) off tag spots that lie on an
+    x-direction leg of `route`: approach in line to `before_m` short of the spot
+    (the camera faces +x and sees the spot from there), step `side_m` sideways
+    towards `centre_y`, pass the spot, step back onto the leg `after_m` past it.
+    A 0.15 m foam block around a tag under the rangefinder made PX4 (height from
+    the rangefinder only) reject the range data and reset its position (10 Nov).
+
+    Collinear waypoints are merged first, so a waypoint sitting on a spot does
+    not hide it. Spots at a leg's ends are left alone (keep lanes short of them).
+    """
+    pts = [route[0]]
+    for p in route[1:]:                            # merge collinear x-legs
+        if (len(pts) >= 2 and abs(pts[-2][1] - pts[-1][1]) < 1e-9
+                and abs(pts[-1][1] - p[1]) < 1e-9
+                and (pts[-1][0] - pts[-2][0]) * (p[0] - pts[-1][0]) > 0):
+            pts[-1] = p
+        else:
+            pts.append(p)
+    out = [pts[0]]
+    for a, b in zip(pts, pts[1:]):
+        if abs(a[1] - b[1]) < 1e-9 and abs(b[0] - a[0]) > 1e-9:
+            y, sgn = a[1], (1.0 if b[0] > a[0] else -1.0)
+            lo, hi = min(a[0], b[0]), max(a[0], b[0])
+            on = sorted((sx for sx, sy in spots if abs(sy - y) <= tol_m
+                         and lo + before_m < sx < hi - after_m
+                         and lo + after_m < sx < hi - before_m), key=lambda sx: sgn * sx)
+            ys = y + side_m * (1.0 if centre_y > y else -1.0)
+            for sx in on:
+                x_in, x_out = (sx - before_m, sx + after_m) if sgn > 0 else (sx + after_m, sx - before_m)
+                out += [(x_in, y), (x_in, ys), (x_out, ys), (x_out, y)]
+        out.append(b)
+    return out

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag Layout Editor</title>
+<!--
+  Place the AprilTags (and the foam blocks boxing them) on the arena, then save the
+  generated YAML into laptop/ and fly it:
+
+      python run_tag_mission.py --drone-id 1 --config tag_layout.yaml --plan-only
+      python run_tag_mission.py --drone-id 1 --config tag_layout.yaml --simulate
+      python run_tag_mission.py --drone-id 1 --config tag_layout.yaml
+
+  The YAML holds only what changes; `base:` pulls in everything else (camera, fences,
+  speeds) from the base config (looked up next to the file, then in laptop/).
+  Arena numbers below are copied from tag_mission_demo_traj.yaml: keep them in sync.
+-->
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1d2330; --muted: #667085; --line: #d0d5dd;
+    --wall: #475467; --area: #e8f1fb; --area-line: #2e6fc0; --fence: #d92d20;
+    --spot: #98a2b3; --tag: #12805c; --block: #b54708; --accent: #2e6fc0; --code: #f2f4f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --ink: #e6e9ef; --muted: #98a2b3; --line: #344054;
+      --wall: #98a2b3; --area: #17283d; --area-line: #5b9be6; --fence: #f97066;
+      --spot: #667085; --tag: #3ccb8f; --block: #f79009; --accent: #5b9be6; --code: #11141a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px 20px 4px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(300px, 460px) 1fr; gap: 16px; padding: 16px 20px 24px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; }
+  svg { width: 100%; height: auto; display: block; touch-action: none; user-select: none; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  input[type=number], input[type=text], select {
+    width: 100%; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font: inherit; }
+  td input[type=number] { width: 72px; }
+  button { font: inherit; padding: 6px 12px; border-radius: 7px; border: 1px solid var(--line);
+           background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.x { padding: 2px 8px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .settings label { font-size: 12.5px; color: var(--muted); display: block; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+        overflow: auto; max-height: 360px; font: 12.5px/1.45 ui-monospace, Consolas, monospace; margin: 10px 0 0; }
+  .stack { display: grid; gap: 16px; align-content: start; }
+  .warn { color: var(--fence); font-size: 12.5px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px;
+                         border-radius: 2px; vertical-align: -1px; background: var(--c); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tag layout editor</h1>
+  <p>Click the map to place a tag (it snaps to the six marked spots), drag to move it, then save the YAML into <code>laptop/</code>.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>Arena (drone frame: +x forward = up, +y right)</h2>
+    <svg id="map" aria-label="Arena map"></svg>
+    <div class="legend">
+      <span style="--c: var(--area)">search area</span>
+      <span style="--c: var(--spot)">PDF tag spot</span>
+      <span style="--c: var(--tag)">tag</span>
+      <span style="--c: var(--block)">foam block (gap = open side)</span>
+      <span style="--c: var(--fence)">hard fence</span>
+    </div>
+    <p class="hint">Grid 0.5 m. Positions snap to 0.05 m, or onto a spot within 0.2 m. Start (0, 0) is the launch-square centre.</p>
+    <p class="hint" id="cursor">&nbsp;</p>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <h2>Tags</h2>
+      <table>
+        <thead><tr><th>#</th><th>ID</th><th>x (m)</th><th>y (m)</th><th>Blocked</th><th>Open side</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <p class="hint" id="empty">No tags yet: click the map, or use the button below.</p>
+      <div class="row">
+        <button id="add">Add tag</button>
+        <button id="clear">Clear all</button>
+      </div>
+      <p class="warn" id="warn"></p>
+    </section>
+
+    <section class="card">
+      <h2>Mission settings</h2>
+      <div class="settings">
+        <div><label for="base">Base config</label><input id="base" type="text" value="tag_mission_demo_traj.yaml"></div>
+        <div><label for="hover">Hover over a tag (s)</label><input id="hover" type="number" step="0.5" min="0" value="3"></div>
+        <div><label for="bhover">Hover over a blocked tag (s)</label><input id="bhover" type="number" step="0.5" min="0" value="5"></div>
+        <div><label for="shift">Shift towards open side (m)</label><input id="shift" type="number" step="0.05" min="0" value="0"></div>
+        <div><label for="order">Visit order</label>
+          <select id="order"><option value="shortest">shortest round trip</option><option value="listed">as listed</option></select></div>
+        <div><label for="fname">File name</label><input id="fname" type="text" value="tag_layout.yaml"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Generated YAML</h2>
+      <div class="row">
+        <button class="primary" id="download">Download YAML</button>
+        <button id="copy">Copy</button>
+        <span class="hint" id="copied"></span>
+      </div>
+      <pre id="yaml"></pre>
+    </section>
+  </div>
+</main>
+
+<script>
+// ---- Arena, from tag_mission_demo_traj.yaml (local frame, metres) ----------------------
+const WALLS  = { min_x: -1.5, max_x: 6.2, min_y: -2.5, max_y: 2.5 };
+const AREA   = { min_x: 0.9,  max_x: 4.5, min_y: -1.8, max_y: 1.35 };
+const SPOTS  = [[1.35, -1.35], [2.70, -1.35], [4.05, -1.35], [1.35, 0.90], [2.70, 0.90], [4.05, 0.90]];
+const LAUNCH_HALF = 0.45;              // 0.9 m launch square centred on the start
+const GEOFENCE_M = 0.45, WALL_CLEAR_M = 0.5;
+const BOX = { inner_half: 0.12, wall_t: 0.05 };   // the foam U (SimLink defaults)
+const SIDES = ["+x", "-x", "+y", "-y"];
+
+// ---- State ------------------------------------------------------------------------------
+const KEY = "tag_layout_editor_v1";
+let tags = [];
+try { const s = JSON.parse(localStorage.getItem(KEY) || "null"); if (Array.isArray(s?.tags)) tags = s.tags; } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ tags })); } catch (e) {} }
+
+// ---- Map geometry: screen right = +y, screen up = +x -------------------------------------
+const PAD = 0.15, PX = 80;                 // metres of padding, pixels per metre
+const W = (WALLS.max_y - WALLS.min_y + 2 * PAD) * PX;
+const H = (WALLS.max_x - WALLS.min_x + 2 * PAD) * PX;
+const sx = y => (y - WALLS.min_y + PAD) * PX;          // local y -> screen x
+const sy = x => (WALLS.max_x + PAD - x) * PX;          // local x -> screen y
+const lx = py => WALLS.max_x + PAD - py / PX;
+const ly = px => px / PX + WALLS.min_y - PAD;
+const r2 = v => Math.round(v * 100) / 100;
+const snap = v => r2(Math.round(v / 0.05) * 0.05);
+
+const svg = document.getElementById("map");
+svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent = svg) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  parent.appendChild(e); return e;
+}
+function rect(a, attrs) {   // a = {min_x,max_x,min_y,max_y}
+  return el("rect", { x: sx(a.min_y), y: sy(a.max_x), width: (a.max_y - a.min_y) * PX,
+                      height: (a.max_x - a.min_x) * PX, ...attrs });
+}
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function hardFence() {
+  const b = { min_x: Math.min(AREA.min_x, 0), max_x: Math.max(AREA.max_x, 0),
+              min_y: Math.min(AREA.min_y, 0), max_y: Math.max(AREA.max_y, 0) };
+  return { min_x: Math.max(b.min_x - GEOFENCE_M, WALLS.min_x + WALL_CLEAR_M),
+           max_x: Math.min(b.max_x + GEOFENCE_M, WALLS.max_x - WALL_CLEAR_M),
+           min_y: Math.max(b.min_y - GEOFENCE_M, WALLS.min_y + WALL_CLEAR_M),
+           max_y: Math.min(b.max_y + GEOFENCE_M, WALLS.max_y - WALL_CLEAR_M) };
+}
+
+function drawBlock(g, t) {
+  // U of three walls around the tag; the open side has no wall
+  const ih = BOX.inner_half, wt = BOX.wall_t, span = ih + wt;
+  const walls = {
+    "+x": { min_x: t.x + ih, max_x: t.x + ih + wt, min_y: t.y - span, max_y: t.y + span },
+    "-x": { min_x: t.x - ih - wt, max_x: t.x - ih, min_y: t.y - span, max_y: t.y + span },
+    "+y": { min_x: t.x - span, max_x: t.x + span, min_y: t.y + ih, max_y: t.y + ih + wt },
+    "-y": { min_x: t.x - span, max_x: t.x + span, min_y: t.y - ih - wt, max_y: t.y - ih },
+  };
+  for (const s of SIDES) if (s !== t.open_side) {
+    const a = walls[s];
+    el("rect", { x: sx(a.min_y), y: sy(a.max_x), width: (a.max_y - a.min_y) * PX,
+                 height: (a.max_x - a.min_x) * PX, fill: css("--block") }, g);
+  }
+}
+
+function draw() {
+  svg.replaceChildren();
+  el("rect", { x: 0, y: 0, width: W, height: H, fill: css("--panel") });
+  for (let y = Math.ceil(WALLS.min_y * 2) / 2; y <= WALLS.max_y + 1e-9; y += 0.5)
+    el("line", { x1: sx(y), x2: sx(y), y1: sy(WALLS.min_x), y2: sy(WALLS.max_x), stroke: css("--line"), "stroke-width": y === 0 ? 1.4 : 0.6 });
+  for (let x = Math.ceil(WALLS.min_x * 2) / 2; x <= WALLS.max_x + 1e-9; x += 0.5)
+    el("line", { x1: sx(WALLS.min_y), x2: sx(WALLS.max_y), y1: sy(x), y2: sy(x), stroke: css("--line"), "stroke-width": x === 0 ? 1.4 : 0.6 });
+  rect(AREA, { fill: css("--area"), stroke: css("--area-line"), "stroke-width": 2, opacity: 0.9 });
+  rect(hardFence(), { fill: "none", stroke: css("--fence"), "stroke-width": 1.5, "stroke-dasharray": "6 5" });
+  rect(WALLS, { fill: "none", stroke: css("--wall"), "stroke-width": 4 });
+  rect({ min_x: -LAUNCH_HALF, max_x: LAUNCH_HALF, min_y: -LAUNCH_HALF, max_y: LAUNCH_HALF },
+       { fill: "none", stroke: css("--muted"), "stroke-width": 1.5 });
+  // start + heading arrow
+  el("path", { d: `M ${sx(0)} ${sy(0.32)} L ${sx(-0.12)} ${sy(0.08)} L ${sx(0.12)} ${sy(0.08)} Z`, fill: css("--muted") });
+  el("text", { x: sx(0) + 14, y: sy(-0.25), fill: css("--muted"), "font-size": 13 }).textContent = "start (0, 0)";
+  for (const [x, y] of SPOTS)
+    el("circle", { cx: sx(y), cy: sy(x), r: 9, fill: "none", stroke: css("--spot"), "stroke-width": 2, "stroke-dasharray": "3 3" });
+  // planned order preview
+  const order = visitOrder();
+  if (order.length) {
+    const pts = [[0, 0], ...order.map(t => [t.x, t.y]), [0, 0]];
+    el("polyline", { points: pts.map(([x, y]) => `${sx(y)},${sy(x)}`).join(" "), fill: "none",
+                     stroke: css("--accent"), "stroke-width": 1.5, "stroke-dasharray": "5 4", opacity: 0.8 });
+  }
+  tags.forEach((t, i) => {
+    const g = el("g", { "data-i": i, style: "cursor: grab" });
+    if (t.blocked) drawBlock(g, t);
+    el("rect", { x: sx(t.y) - 8, y: sy(t.x) - 8, width: 16, height: 16, fill: css("--tag"), rx: 2 }, g);
+    const n = order.indexOf(t);
+    el("text", { x: sx(t.y) + 14, y: sy(t.x) - 10, fill: css("--ink"), "font-size": 13, "font-weight": 600 }, g)
+      .textContent = `${t.id === "" || t.id == null ? "ID ?" : "ID " + t.id}${n >= 0 ? "  (#" + (n + 1) + ")" : ""}`;
+  });
+}
+
+// ---- Visit order (mirrors mission_config.known_stops, without the camera offset) -------
+function tourLen(seq) {
+  let d = 0, p = [0, 0];
+  for (const t of seq) { d += Math.hypot(t.x - p[0], t.y - p[1]); p = [t.x, t.y]; }
+  return d + Math.hypot(p[0], p[1]);
+}
+function visitOrder() {
+  if (document.getElementById("order")?.value === "listed" || tags.length < 2) return [...tags];
+  if (tags.length > 8) return [...tags];
+  let best = null, bestD = Infinity;
+  const perm = (rest, acc) => {
+    if (!rest.length) { const d = tourLen(acc); if (d < bestD) { bestD = d; best = acc; } return; }
+    rest.forEach((t, i) => perm(rest.filter((_, j) => j !== i), [...acc, t]));
+  };
+  perm(tags, []);
+  return best;
+}
+
+// ---- Interaction --------------------------------------------------------------------------
+function toLocal(evt) {
+  const p = svg.createSVGPoint(); p.x = evt.clientX; p.y = evt.clientY;
+  const q = p.matrixTransform(svg.getScreenCTM().inverse());
+  let x = lx(q.y), y = ly(q.x);
+  for (const [spx, spy] of SPOTS) if (Math.hypot(spx - x, spy - y) < 0.2) return [spx, spy];
+  return [snap(x), snap(y)];
+}
+let drag = null;
+svg.addEventListener("pointerdown", e => {
+  const g = e.target.closest("g[data-i]");
+  if (g) { drag = +g.dataset.i; svg.setPointerCapture(e.pointerId); return; }
+  const [x, y] = toLocal(e);
+  tags.push({ id: "", x, y, blocked: false, open_side: "+x" });
+  update();
+});
+svg.addEventListener("pointermove", e => {
+  const [x, y] = toLocal(e);
+  document.getElementById("cursor").textContent = `x = ${x.toFixed(2)} m, y = ${y.toFixed(2)} m`;
+  if (drag !== null) { tags[drag].x = x; tags[drag].y = y; update(); }
+});
+svg.addEventListener("pointerup", () => { drag = null; });
+
+function rowsHtml() {
+  const tb = document.getElementById("rows");
+  tb.replaceChildren();
+  tags.forEach((t, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${i + 1}</td>
+      <td><input type="number" min="0" max="21" step="1" data-k="id" value="${t.id}" placeholder="?"></td>
+      <td><input type="number" step="0.05" data-k="x" value="${t.x}"></td>
+      <td><input type="number" step="0.05" data-k="y" value="${t.y}"></td>
+      <td><input type="checkbox" data-k="blocked" ${t.blocked ? "checked" : ""}></td>
+      <td><select data-k="open_side" ${t.blocked ? "" : "disabled"}>${SIDES.map(s =>
+          `<option ${s === t.open_side ? "selected" : ""}>${s}</option>`).join("")}</select></td>
+      <td><button class="x" title="Remove">✕</button></td>`;
+    tr.querySelectorAll("[data-k]").forEach(inp => inp.addEventListener("change", () => {
+      const k = inp.dataset.k;
+      t[k] = k === "blocked" ? inp.checked : k === "open_side" ? inp.value
+           : k === "id" ? (inp.value === "" ? "" : parseInt(inp.value, 10)) : r2(parseFloat(inp.value) || 0);
+      update();
+    }));
+    tr.querySelector("button").addEventListener("click", () => { tags.splice(i, 1); update(); });
+    tb.appendChild(tr);
+  });
+  document.getElementById("empty").style.display = tags.length ? "none" : "";
+}
+
+// ---- YAML ----------------------------------------------------------------------------------
+const num = v => (Number.isInteger(v) ? v.toFixed(1) : String(r2(v)));
+function hasId(t) { return t.id !== "" && t.id != null && !Number.isNaN(t.id); }
+function warnings() {
+  const w = [];
+  tags.forEach((t, i) => {
+    if (t.x < AREA.min_x || t.x > AREA.max_x || t.y < AREA.min_y || t.y > AREA.max_y)
+      w.push(`Tag #${i + 1} is outside the search area: the mission will refuse this file.`);
+  });
+  const ids = tags.filter(hasId).map(t => t.id);
+  if (new Set(ids).size !== ids.length) w.push("Two tags share an ID.");
+  if (tags.some(t => !hasId(t))) w.push("Tags without an ID are flown to, but not simulated or scored.");
+  return w;
+}
+function yaml() {
+  const v = id => document.getElementById(id).value;
+  const L = [];
+  L.push(`# Generated by tag_layout_editor.html, ${new Date().toISOString().slice(0, 16).replace("T", " ")}.`);
+  L.push("# Known tag positions: the drone flies to each one and hovers over it (camera looking");
+  L.push("# straight down), then returns and lands. Everything else comes from `base`.");
+  L.push(`base: ${v("base") || "tag_mission_demo_traj.yaml"}`);
+  L.push("");
+  L.push("known_tags:");
+  L.push("  enabled: true");
+  L.push(`  order: ${v("order")}`);
+  L.push(`  hover_s: ${num(+v("hover") || 0)}`);
+  L.push(`  blocked_hover_s: ${num(+v("bhover") || 0)}`);
+  L.push(`  open_side_shift_m: ${num(+v("shift") || 0)}`);
+  if (!tags.length) L.push("  tags: []");
+  else {
+    L.push("  tags:");
+    for (const t of tags) {
+      const id = hasId(t) ? t.id : "null";
+      L.push(`    - {id: ${id}, x: ${num(t.x)}, y: ${num(t.y)}` +
+             (t.blocked ? `, blocked: true, open_side: "${t.open_side}"}` : "}"));
+    }
+  }
+  L.push("");
+  L.push("detection:");
+  L.push(`  expected_tags: ${Math.max(tags.length, 1)}`);
+  L.push("");
+  L.push("tag_spots:          # drawn on the live map");
+  if (!tags.length) L.push("  []");
+  for (const t of tags) L.push(`  - [${num(t.x)}, ${num(t.y)}]`);
+  L.push("");
+  L.push("simulation:         # --simulate puts these tags (and blocks) on the floor");
+  const sim = tags.filter(hasId);
+  L.push("  tags:" + (sim.length ? "" : " {}"));
+  for (const t of sim) L.push(`    ${t.id}: [${num(t.x)}, ${num(t.y)}]`);
+  const bx = sim.filter(t => t.blocked);
+  L.push("  boxed:" + (bx.length ? "" : " {}"));
+  for (const t of bx) L.push(`    ${t.id}: {open_side: "${t.open_side}", wall_h: 0.15, inner_half: ${BOX.inner_half}, wall_t: ${BOX.wall_t}, tag_half: 0.05}`);
+  return L.join("\n") + "\n";
+}
+
+function update() {
+  save(); draw(); rowsHtml();
+  document.getElementById("yaml").textContent = yaml();
+  document.getElementById("warn").textContent = warnings().join(" ");
+}
+
+document.getElementById("add").addEventListener("click", () => {
+  const free = SPOTS.find(([x, y]) => !tags.some(t => t.x === x && t.y === y)) || [2.7, 0];
+  tags.push({ id: "", x: free[0], y: free[1], blocked: false, open_side: "+x" }); update();
+});
+document.getElementById("clear").addEventListener("click", () => { tags = []; update(); });
+for (const id of ["base", "hover", "bhover", "shift", "order"])
+  document.getElementById(id).addEventListener("input", update);
+document.getElementById("download").addEventListener("click", () => {
+  const blob = new Blob([yaml()], { type: "text/yaml" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = document.getElementById("fname").value || "tag_layout.yaml";
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(yaml()); document.getElementById("copied").textContent = "Copied."; }
+  catch (e) { document.getElementById("copied").textContent = "Copy failed: select the text below."; }
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+update();
+</script>
+</body>
+</html>
