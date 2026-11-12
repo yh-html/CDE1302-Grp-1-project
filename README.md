@@ -17,14 +17,14 @@ for three AprilTags, log each tag's ID and position, then return and land.
 | [`main/`](main) | ESP32-S3 firmware (FreeRTOS tasks: MAVLink, ToF, VFH navigation, AprilTag, WiFi) |
 | [`components/`](components), [`managed_components/`](managed_components) | Vendored firmware libraries (MAVLink, esp-apriltag, VL53L5CX, camera) |
 | [`laptop/`](laptop) | Python ground station: drone link, missions, live camera/tag viewers, flight analysis, tests |
-| [`waypoints/`](waypoints), [`trajectory/`](trajectory) | Waypoint missions and MATLAB minimum-snap trajectories |
+| [`trajectory/`](trajectory) | MATLAB minimum-snap trajectories (Lab 5 waypoint files are in [`docs/archive/waypoints/`](docs/archive/waypoints)) |
 | [`mini_project/`](mini_project) | Mission guides, preflight checklists, Simulink search sweep, report |
-| [`CAD/`](CAD), [`codex/`](codex) | 3D-printable frame design and the scripts that generate it |
-| [`docs/`](docs) | QGroundControl bridge notes and the SAFMC 2026 challenge booklet |
+| [`cad/`](cad) | 3D-printable frame design and the scripts that generate it (Fusion exports in `cad/fusion/`) |
+| [`docs/`](docs) | QGroundControl bridge notes; old SAFMC swarm material in `docs/archive/` |
 | [`tools/`](tools) | Pinned ESP-IDF version |
 
 **Guides:** [flight tests](laptop/TEST_GUIDE.md) ·
-[waypoint missions](waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md) ·
+[waypoint missions](docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md) ·
 [drone bring-up](mini_project/DRONE_BRINGUP_GUIDE.md) ·
 [preflight](mini_project/PREFLIGHT_GUIDE.md) ·
 [QGroundControl bridge](docs/QGC_MAVLINK_BRIDGE.md)
@@ -236,7 +236,7 @@ Full procedure: [laptop/TEST_GUIDE.md](laptop/TEST_GUIDE.md).
 
 ```bash
 python3 laptop/simple_waypoint_mission.py \
-  --waypoints-file waypoints/waypoints_example.txt --confirm \
+  --waypoints-file docs/archive/waypoints/waypoints_example.txt --confirm \
   --drone-id [DRONE_ID]
 ```
 
@@ -244,7 +244,7 @@ python3 laptop/simple_waypoint_mission.py \
 soon as telemetry arrives. Waypoints are `x,y` metres (x = north, y = east) from
 PX4's local origin, plus the drone's start offset in `laptop/setup.yaml` if listed.
 
-Full procedure: [waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md](waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md).
+Full procedure: [docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md](docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md).
 
 ## 6. Fly from a CSV trajectory
 

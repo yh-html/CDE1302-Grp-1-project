@@ -35,7 +35,7 @@ sweep:
 
 # Where the camera sits on the drone and how it is tilted.  This sets the tag
 # localisation error (15% of the marks): measure it on the assembled drone.
-# PLACEHOLDER: from the CAD of the stock-parts CameraHolder_TPU (codex/stock_mounts,
+# PLACEHOLDER: from the CAD of the stock-parts CameraHolder_TPU (cad/stock_mounts,
 # output/reports/GEOMETRY_BRIEF.md), NOT measured on the printed drone. It assumes the
 # lens is centred on the pocket, a 32 mm standoff length (assumed) and the FC hanging
 # 5 mm under the frame (body origin = FC centre). Measure the real lens position
@@ -64,7 +64,7 @@ detection:
   stop_when_all_found: false   # true: return as soon as expected_tags are found
 
 mission:
-  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (waypoints/
+  # ASSUMED 0.2. The real speed is PX4's MPC_XY_VEL_MAX on the flight controller (docs/archive/waypoints/
   # WAYPOINT_FLIGHT_TEST_GUIDE.md says about 0.2 m/s); the firmware's NAV_CRUISE_SPEED_MS is NOT
   # used for control. Measure it with analyze_flight.py. Used here only for timeouts and the ETA.
   cruise_speed_mps: 0.20

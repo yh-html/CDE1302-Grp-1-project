@@ -5,9 +5,9 @@ Updated **Tue 3 Nov 2026** for the **flight test today at 2:00 pm** (start with 
 This guide compiles the lab manuals (Labs 1, 2, 3 and 5), your own Lab 2, 3 and 5 reports, the repo guides, and the mission code, into one step-by-step order. It replaces `PREFLIGHT_GUIDE.md` (older, written before I had read the labs).
 
 Where each step comes from:
-- **[Lab 1] [Lab 2] [Lab 3] [Lab 5]** = the lab manuals in `C:\cde1302\Labs\`.
-- **[Your Lab n]** = values you recorded in your own reports (`Lecture Notes\`).
-- **[repo]** = `README.md`, `laptop/TEST_GUIDE.md`, `waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `docs/QGC_MAVLINK_BRIDGE.md`.
+- **[Lab 1] [Lab 2] [Lab 3] [Lab 5]** = the lab manuals in `C:\cde1302_course\labs\`.
+- **[Your Lab n]** = values you recorded in your own reports (`C:\cde1302_course\lectures\`).
+- **[repo]** = `README.md`, `laptop/TEST_GUIDE.md`, `docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `docs/QGC_MAVLINK_BRIDGE.md`.
 - **[new]** = from the mission code written for the final run.
 - **[general]** = ordinary PX4 / QGroundControl practice that the labs and repo do not spell out. I have not seen your PX4 parameters, so treat these as things to check.
 - **[check]** = I could not settle this from the files. You must confirm it on the real drone.
@@ -222,7 +222,7 @@ Optical flow works poorly on dark, reflective, transparent or plain floors, in p
 Step order; do the next only after the previous one is clean. Run every command with `--confirm` where it exists.
 
 1. **Arm, take off, hover, land:** `python laptop/simple_arm_takeoff_land.py --drone-id 22`, type `ARM-22`. In QGroundControl: mode changes to **Offboard**, vehicle armed, climbs to about **0.5 m**, steady hover, then land, disarmed. Expected ESP32 lines: `CMD_START received`, `OFFBOARD mode confirmed`, `Armed confirmed`, `Taking off to 0.5 m AGL`, `CMD_HOLD received`, `CMD_LAND received from laptop`. [Lab 5]
-2. **Waypoints:** `python laptop/simple_waypoint_mission.py --drone-id 22 --waypoints-file waypoints/waypoints_example.txt --takeoff-wait 5.0 --arrival-timeout 30.0 --confirm`, type `MISSION-22`. Horizontal drift should stay under 0.3 m; the waypoint acceptance radius is 0.25 m. [Lab 5, repo]
+2. **Waypoints:** `python laptop/simple_waypoint_mission.py --drone-id 22 --waypoints-file docs/archive/waypoints/waypoints_example.txt --takeoff-wait 5.0 --arrival-timeout 30.0 --confirm`, type `MISSION-22`. Horizontal drift should stay under 0.3 m; the waypoint acceptance radius is 0.25 m. [Lab 5, repo]
 3. **Trajectory tracking** (optional, not needed for the graded task): `send_trajectory.py` with the ellipse CSV, drone placed as in the Lab 5 figure. [Lab 5]
 4. **Camera and AprilTags in flight** at `--fps 5`. Tags never affect the flight. [repo]
 5. **The mission itself:** `python laptop/run_tag_mission.py --drone-id 22 --plan-only`, then without `--plan-only` (type `TAKEOFF-22`).

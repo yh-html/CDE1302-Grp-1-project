@@ -2,7 +2,7 @@
 
 Evidence for the report: flight-data analysis and the diagnosis of abnormal behaviour. The
 videos (`1945_111126.MOV`, `2005_111126.MOV`, `2015_111126.mp4`, `2030_1st run.mp4`,
-`2031_2nd run.mp4`) stay in `C:\cde1302\photos of arena\`, because they are too large for git.
+`2031_2nd run.mp4`) stay in `C:\cde1302_course\photos\arena\`, because they are too large for git.
 
 Before this day the camera was remounted to look straight down (pitch 90). See commit c9171d3.
 

@@ -72,7 +72,7 @@ The camera (the XIAO ESP32-S3 board itself) hangs under the nose, ahead of the b
 On Windows with Python **3.11** and the Python launcher installed, from any PowerShell directory:
 
 ```powershell
-& 'C:\cde1302\codex\drone_cad_v2\build.ps1'
+& 'C:\cde1302\cad\drone_cad_v2\build.ps1'
 ```
 
 If this copy has no `.venv`, the script reuses the identical environment in `..\drone_cad\.venv`. Otherwise it creates `.venv` inside this project if missing, installs exact versions from `requirements-lock.txt`, builds the B-reps and exports, renders the assembly, writes numerical reports, then runs pytest. Initial dependency installation needs internet access. It does not alter the workspace's Miniforge installation. Allow several minutes for boolean solids and checks. Read `output/reports/progress.log` while it runs. `-Force` regenerates solids rather than using the content-addressed B-rep cache. Deleting `output/cache` is optional; it is not source.

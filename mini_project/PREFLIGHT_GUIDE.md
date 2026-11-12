@@ -5,7 +5,7 @@
 Written 29 Oct 2026 for the final run on **Thu 12 Nov, 4:15 to 5:00 pm**. Drone ID **22** is used in every example: **replace it with the ID on your drone** (the number flashed into the ESP32).
 
 Where each step comes from:
-- **[repo]** = taken from this repo's own guides (`README.md`, `laptop/TEST_GUIDE.md`, `waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `docs/QGC_MAVLINK_BRIDGE.md`, `mini_project/GUIDE.md`).
+- **[repo]** = taken from this repo's own guides (`README.md`, `laptop/TEST_GUIDE.md`, `docs/archive/waypoints/WAYPOINT_FLIGHT_TEST_GUIDE.md`, `docs/QGC_MAVLINK_BRIDGE.md`, `mini_project/GUIDE.md`).
 - **[general]** = ordinary PX4 / QGroundControl practice that the repo does not cover. I have not seen your flight controller's parameters, so treat these as things to *check*, not values to type in.
 - **[checked 29 Oct]** = I ran it on this laptop.
 
@@ -156,7 +156,7 @@ The script sends START, waits 12 s, HOLD, waits 5 s, LAND. Watch QGC: Offboard, 
 
 **Test B: short waypoint test** [repo]
 ```powershell
-& $py laptop/simple_waypoint_mission.py --waypoints-file waypoints/waypoints_example.txt --confirm --drone-id 22
+& $py laptop/simple_waypoint_mission.py --waypoints-file docs/archive/waypoints/waypoints_example.txt --confirm --drone-id 22
 ```
 Always use `--confirm` (type `MISSION-22`): without it the drone takes off as soon as telemetry arrives. Route: (0,0), (0.8,0), (0.8,0.8). It flies straight lines at about 0.2 m/s.
 

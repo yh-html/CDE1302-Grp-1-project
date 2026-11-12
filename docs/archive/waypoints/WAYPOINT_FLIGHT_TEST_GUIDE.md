@@ -19,7 +19,7 @@ are the same. Run from the repo root. Examples use drone **22**.
 
 | File | Route |
 |------|-------|
-| `waypoints/waypoints_example.txt` | (0,0) → (0.8,0) → (0.8,0.8). First flight |
+| `docs/archive/waypoints/waypoints_example.txt` | (0,0) → (0.8,0) → (0.8,0.8). First flight |
 | `laptop/my_path.txt` | 2 m zig-zag north |
 | `laptop/navtag_test_path.txt` | 1 m west, back, then the zig-zag |
 
@@ -30,7 +30,7 @@ Communication check (this script has no monitor mode):
 
 ```bash
 python3 laptop/simple_waypoint_mission.py --drone-id 22 --confirm \
-  --waypoints-file waypoints/waypoints_example.txt
+  --waypoints-file docs/archive/waypoints/waypoints_example.txt
 ```
 
 Type `MISSION-22`. **Always use `--confirm`**: without it, the drone takes off

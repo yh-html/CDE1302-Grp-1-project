@@ -2,7 +2,7 @@
 
 Evidence for the report (flight-data analysis, abnormal-behaviour diagnosis). The videos
 `1st flight test.mp4` (18:19), `1903.mp4`, `1922.mp4` and `1958.mp4` stay in
-`C:\cde1302\photos of arena\` because they are too large for git (371 MB).
+`C:\cde1302_course\photos\arena\` because they are too large for git (371 MB).
 
 ## Runs
 

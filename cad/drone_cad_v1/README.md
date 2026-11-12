@@ -9,7 +9,7 @@ The external legacy exports changed during this task: five of twelve initial has
 On Windows with Python **3.11** and the Python launcher installed, from any PowerShell directory:
 
 ```powershell
-& 'C:\cde1302\codex\drone_cad\build.ps1'
+& 'C:\cde1302\cad\drone_cad_v1\build.ps1'
 ```
 
 The script creates `.venv` inside this project if missing, installs exact versions from `requirements-lock.txt`, builds the B-reps and exports, renders the assembly, writes numerical reports, then runs pytest. Initial dependency installation needs internet access. It does not alter the workspace's Miniforge installation. Allow several minutes for boolean solids and checks. Read `output/reports/progress.log` while it runs. `-Force` regenerates solids rather than using the content-addressed B-rep cache. Deleting `output/cache` is optional; it is not source.
