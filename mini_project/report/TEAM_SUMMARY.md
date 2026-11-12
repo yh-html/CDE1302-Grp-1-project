@@ -262,7 +262,7 @@ The 21:25 tag estimates landed almost on the Flying Area PDF spots:
 
 (The errors are computed from the NOTES.md table. The PDF spots are the nominal layout; the tags were not tape-measured.)
 
-**The SD card stopped logging** after the casing work. MAVLink `SYS_STATUS` reported logging not present and the log list was empty, so the 21:22 and 21:25 flights have no `.ulg` (NOTES.md, "Not logged").
+**The SD card stopped logging** after the casing work. MAVLink `SYS_STATUS` reported logging not present and the log list was empty, so the 21:22 and 21:25 flights have no `.ulg` (NOTES.md, "Not logged"). The root cause was found on 12 Nov evening: the card cannot be written to at all (see §5.6).
 
 Also on 11 Nov: the downward camera changed the sweep slow zones to centre on the spots. The look-again offset went to 0. The camera offsets are still the 45-deg-mount values and were never re-measured (memory note on the downward camera; YAML comments).
 
@@ -278,7 +278,7 @@ Also on 11 Nov: the downward camera changed the sweep slow zones to centre on th
 | Misread IDs | 10 Nov 15:29, 19:48; 12 Nov runs 1 and 3 | tag16h5 bit errors | 3-frame rule, merge radius | Fixed (worked on 12 Nov) |
 | Motion blur | 10 Nov 19:18 | 0.20 m/s in low light | 0.144 m/s + 0.06 m/s slow zones | Fixed |
 | Backwards drift on the first leg | 6 Nov, 10 Nov 15:22/16:09/16:10/17:47, 12 Nov 16:50 | Not diagnosed (no .ulg for 12 Nov) | Soft and hard fences catch it | Open |
-| Hardware | 10 Nov: GND wire off; Oct: PETG guards broke; 11 Nov: SD card stopped logging | | Resoldered; guards redesigned; SD card unresolved | See section 8 |
+| Hardware | 10 Nov: GND wire off; Oct: PETG guards broke; 11 Nov: SD card stopped logging | SD card: every write fails with errno 22, so params and logs can't be saved (§5.6) | Resoldered; guards redesigned; SD card diagnosed, needs a reformat or replacement | §5.6 |
 
 ---
 
@@ -327,7 +327,7 @@ Numbers computed from `tags.csv`:
   - Run 2 at about 149.0-149.2 s: heading changed by about 39 deg, and xy jumped about 1.2 m, to (0.25, -1.14).
   - Run 3 at about 150.1-150.6 s: heading changed by about -26 deg, and xy jumped about 0.5 m, to (0.01, 0.50).
 - This is the same post-touchdown estimator reset that the 11 Nov 19:42 ULog showed (1.9 m and -47 deg after touchdown), caused by the yaw never being aligned without a compass.
-- A carry would show gradual motion, not a single jump. **So the drone was not carried. Use the `START_AREA_REACHED` / `LANDING_CMD_SENT` positions (0.09, 0.02, 0.17 m from start) as the landing position**, and say that they are estimates (whether it landed inside the box is the examiner's call; the run 1 video confirms it landed inside the start box, see §5.x).
+- A carry would show gradual motion, not a single jump. **So the drone was not carried. Use the `START_AREA_REACHED` / `LANDING_CMD_SENT` positions (0.09, 0.02, 0.17 m from start) as the landing position**, and say that they are estimates (whether it landed inside the box is the examiner's call; the run 1 video confirms it landed inside the start box, see §5.5).
 
 **(b) Run 3 missed ID 2, and its ID 6 is 0.6 m off (inferred: position-estimate drift).**
 - ID 4 on the left lane (at about 49 s) agreed with runs 1 and 2. The drift therefore started after that.
@@ -359,9 +359,13 @@ Both are listed under `ignored_ids` in `summary.json` and never counted. This di
 | Completion time (15%) | 148.0-150.6 s to mission end (140-143 s to the landing command) |
 | System quality (15%) | Smooth trajectory with no stops or turns, layered safety (it caught the drift attempt), 3-frame misread rejection, config-driven, tests, live map |
 
-### 5.x Graded run 1 video and the examiner's questions
+### 5.5 Graded-run videos and the examiner's questions
 
-The video is `graded run 1.MOV` (151 s, filmed from behind the start box). Its audio was transcribed locally with Whisper large-v3, so the quotes below are close but not word-perfect. The video starts at the "3, 2, 1, go" countdown, about 3–4 s before the log's t = 0.
+All three videos are in `C:\cde1302_courseideos\` (`graded run 1.MOV`, `graded run 2.MOV`, `graded run 3.MOV`, about 151 s each). Their audio was transcribed locally with Whisper large-v3. Speakers were assigned from context, so check the attribution if a line matters. Whisper also invents filler on silent stretches, such as long runs of "Okay" or counting; that filler is left out below.
+
+#### Run 1
+
+Filmed from behind the start box. The video starts at the "3, 2, 1, go" countdown, about 3–4 s before the log's t = 0.
 
 What the video shows:
 - **Takeoff.** The drone lifts off inside the start box.
@@ -376,13 +380,62 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 | Video time | Examiner asked | Answer given | Correct for the report |
 |---|---|---|---|
 | 4–30 s | "What's your search strategy?" | "One loop around the whole thing… one circle." | Right. It is a two-lane loop: lanes at y = −1.35 and +1.40 m, then across at x ≈ 4.05, then return. In the config these are the 6 planned waypoints. |
-| 43–50 s | (follow-up) | "It covers each point to make sure there is no [tag] there… it will linger at each of the six points." | **Imprecise.** In trajectory mode the drone does not stop at the 6 points; it flies one continuous path. It slows from 0.144 to 0.06 m/s within ±0.3 m of each *expected tag spot*, and it hovers once, for 4 s, after all 3 tags are found. (Whisper heard "RFID"; the word was probably "tag".) |
+| 43–50 s | (follow-up) | "It covers each point to make sure there is no [tag] there… it will linger at each of the six points." | **Mostly right; say it precisely.** The config lists **six tag spots**: x = 1.35, 2.70 and 4.05 on both lanes (`tag_spots` in `tag_mission_demo_traj.yaml`). The drone does not stop at them. It **slows from 0.144 to 0.06 m/s** within ±0.3 m of each spot, and it hovers once, for 4 s, when all 3 tags are found. (Whisper heard "RFID"; the word was probably "tag".) |
 | 55–64 s | (heights) | "We started at 0.5, then 0.8, then 0.7." | **Partly wrong.** The config says 0.5 m first, 0.8 m tried on 11 Nov 20:54 ("wobblier, battery died"), and **0.6 m** flown in the graded run, after taking off at 0.5 m. |
 | 66 s | — | "Over 45 flights in the past two days." | The mission logger recorded **37 mission takeoffs** on 10–11 Nov (20 and 17). Flights with other scripts (manual, takeoff/land tests) aren't in that count, so "over 45" is plausible but unverified. |
 | 74–101 s | — | Over the block "it would think it's about to crash and go crazy"; "we turned on the barometer in the FC so it has two sources for height"; "we crashed into the black cover". | Right in substance. This is the 10 Nov 17:50 EKF height reset over the foam block (rangefinder-only height, then a climb and reset). The fix was `EKF2_BARO_CTRL=1` plus `EKF2_RNG_NOISE` 0.05 (see §4). |
 | 105–109 s | "Did you manage to detect two of them?" | "Yes, on to the last one." | Matches the log: ID 4 at 46 s and ID 6 at 87.5 s. |
 | 113–117 s | "It's not stable at all today, huh?" | "I think it's reasonable." | **Worth addressing in the report.** The examiner noticed the wobble. The run 1 map shows ±0.1–0.2 m lane wander from the optical-flow position hold (no motion capture, no compass). Discuss this as a known limitation (§6). |
 | 121–128 s | "All three already?" / "Easy mark, right? Just scan all three." | "Automatically." | Positive: the examiner acknowledged the autonomous 3/3. |
+
+#### Run 2
+
+The video shows a clean loop. The drone takes off, flies up the left lane, across the far end and down the right lane, then flies home and lands at the start box. Students commented that the landing was "a bit far" and had "drifted to the left". The log says LAND was sent 0.02 m from start by the estimate.
+
+| Video time | Examiner asked | Answer given | Correct for the report |
+|---|---|---|---|
+| 59–75 s | "I think you better file a report. How many times have you done it?" | "45 times… our drone was not flying initially, so we had to fly even more." | The mission logger shows **37 mission takeoffs on 10–11 Nov**. Use "over 35 logged mission flights in two days, plus manual and bench tests", or count the other scripts before quoting 45. |
+| 77–95 s | "What's the strategy? You remember where it was in the past, is it?" / "Within the run or between different runs?" | "Yes, it will linger there about 2 seconds longer." / "Between different runs." | **Partly right.** The six `tag_spots` come from the PDF layout and the 11 Nov measured positions (the right row is at y = 1.40 "because 11 Nov flights measured tag 6 at y = 1.4–1.5"). So the slow zones do use knowledge from earlier runs. The drone does not stop for 2 s; it slows to 0.06 m/s across a 0.6 m zone, which adds about 5–6 s per spot compared with 0.144 m/s. The examiner called this "a different strategy". Describe it as **prior-informed slow zones over a lawnmower loop**. |
+| 97–105 s | — | "In case it doesn't scan the block, I have an HTML I can run to generate a path based on where the tags are, but luckily I don't need to use that." | Right. This is `tag_layout_editor.html` and the known-tags hover mode (since 11 Nov), which writes a layout YAML. It was **not used** in the graded run. |
+| 109–113 s | "So all this needs to go in the report?" | "Yes." | **The examiner expects the strategy and the 45-flight iteration story in the report.** |
+| 125–131 s | "Oh, you're changing the direction of the camera?" | "Yeah, now it's facing directly [down]." | The camera was moved from a 45° mount to straight down on 11 Nov (pitch 90). Explain why in the report: a tag is in view exactly while the drone is over it, and the slow zones are centred on the spots. |
+
+#### Run 3
+
+The video was filmed handheld, following the drone. **It confirms the drift.** From about video 104 s to 135 s the drone comes down the right side **outside the dashed right boundary line, next to the dark cabinet**. It passes the ID 2 tag well off to its side and cuts back in towards the start box only at the end. This matches the log: the right lane was flown at an estimated y of 1.50–1.67, ID 2 was decoded in only 1 frame, and ID 6 was about 0.5 m off. **The position estimate drifted. PX4 thought it was on the lane while the drone was physically outboard of it.**
+
+| Video time | Asked | Answer given | Correct for the report |
+|---|---|---|---|
+| 0–47 s | "Did you change something for this one?" | "I don't know why it keeps failing to upload… no, nothing changed. I think there might be something wrong with the SD card [of the PX4]." | **Two separate things got mixed up.** (1) The trajectory **pre-upload** didn't start (`TRAJECTORY_PREUPLOAD_NOT_STARTED` at 13.5 s in runs 2 and 3). The trajectory goes to the **ESP32** over Wi-Fi, not to the PX4 SD card. (2) The PX4 SD card *is* faulty (§5.6), but that only stops .ulg logging; it does not affect the trajectory. |
+| 85–101 s | — | "Because I'm not able to pre-upload my trajectory, it's not actually looking at the previous [path], so it's just been flying by." | **Not correct.** When the pre-upload doesn't start, `tag_mission.py` falls back to a **full upload of the same 1279 points** (lines 455–480), so the path, slow zones and speed are identical. Run 2 had the same fallback and scored 3/3. The miss in run 3 came from position drift, not from the upload. |
+| 70–79 s | — | "I think it's fighting something… it could be the battery actually." | Plausible as a contributor, but there is no battery data to check (no .ulg). The evidence points to optical-flow position drift, the same failure as 10 Nov 19:48 and 11 Nov 19:42. |
+| 112–122 s | "So do you use a waypoint or trajectory?" | (answer not captured) | **Trajectory**: one continuous 1279-point path streamed by the ESP32 at 20 Hz in PX4 Offboard mode (§3). |
+| 114–122 s | — | "I don't think it's going to scan the [one] side… this one, it didn't scan [it]." | ID 2 was missed. It sits on the **right (east, +y) lane** in the map frame; "left" in the audio is the speaker's viewpoint. |
+
+### 5.6 Why there is no PX4 log (.ulg) for the graded run
+
+After the graded run the drone was stripped down to the flight controller. On 12 Nov evening the FC was read over USB (COM10) using MAVLink. The checks were the log-list request (`LOG_REQUEST_LIST`) and the PX4 shell commands `logger status`, `ls` and `dmesg`.
+
+| Check | Result |
+|---|---|
+| Log list over MAVLink | **0 logs** |
+| `ls /fs/microsd/log` | **empty** |
+| `logger status` | Running in mode "all", 143 subscriptions, "Not logging" (normal when disarmed) |
+| `SDLOG_MODE` | 0, which means log from arm to disarm (correct) |
+| `df -h` | SD card mounted, vfat, 3580 MB, 169 MB used, 3410 MB free |
+| Files on the card | `params` 0 B, `logdata.txt` 0 B, `dataman` 68 KB, `parameters_backup.bson` 2 KB, `param_import_fail.txt` 1.3 KB (could not be read: "read failed: Connection timed out") |
+| `dmesg` | Repeated `ERROR [tinybson] file write error -1, errno:22 (Invalid argument)`, `parameter export to /fs/microsd/params failed`, and finally `param auto save failed (-1)` |
+
+**Diagnosis.** The logger was configured correctly and was running. Space was not the problem either: the card is mounted and has room. **Every write to the card fails** with errno 22 (EINVAL), which points to a corrupted FAT filesystem or a failing card. The logger therefore could not create a .ulg when the drone armed. This started after the casing work on 11 Nov; flights up to 11 Nov 20:29 have ULogs.
+
+**What this means for the evidence:**
+- No 12 Nov flight has a PX4 log. The graded-run evidence is the laptop mission logs in `laptop/mission_logs/20261112_*`: telemetry at 10 Hz, events, and every tag observation. The live-map screenshots and the run 1 video back them up.
+- The required ULog analysis figure uses the 11 Nov 20:02 flight, a 3/3 run with a ULog.
+- **Possible side effect (inferred, not verified):** parameter auto-save also fails. Parameter and calibration changes may therefore not have survived a power cycle, which could be why recalibrating before every flight was necessary. This could be checked after the card is fixed: change a parameter, reboot, read it back.
+
+**Fix (not yet done).** Copy `parameters_backup.bson` off the card. Reformat the card as FAT32 on a PC, or replace it. Then confirm `logger status` shows a log being written while the drone is armed. A good addition to the pre-flight checklist: confirm the log list grows after a short arm and disarm.
+
+This is a usable case for the report's optional abnormal-behaviour section: the symptom, the hypotheses, the evidence from the shell output above, and the diagnosis.
 
 ---
 
@@ -398,7 +451,7 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 4. **Two lanes assume the tags are on the marked spots.** For tags anywhere, use a 5-lane plan (about 2x longer). Look-again (re-visiting single glimpses) is coded but disabled. With a fix for the misread trigger, it would have rescued run 3's single ID 2 frame.
 5. **No touchdown signal.** Landing equals the command plus 8 s.
 6. **Wi-Fi robustness.** Gaps of 2-3 s with the camera stream on. The 3 s stale timeout is a blunt fix.
-7. **Logging.** The FC SD card stopped writing .ulg files on 11 Nov, so the best runs have no PX4 log.
+7. **Logging.** The FC SD card stopped accepting writes on 11 Nov, so the best runs, including all of 12 Nov, have no PX4 log. A pre-flight check of `logger status` or the log list would have caught it before the graded run. Future work: add that check to the checklist and keep a spare formatted card (§5.6).
 8. **Backwards drift on the first leg** was never diagnosed.
 9. **Battery:** one run lost power mid-flight. There is no battery-voltage check in the mission.
 
@@ -430,7 +483,7 @@ Examiner's questions and the answers given. The "Correct for the report" column 
   - `mini_project/graded_run_2026-11-12/README.md` says "known-tags mission", but the logs show the generated sweep.
   - A Webots sim found a `StuckMonitor` bug (`mini_project/webots/AGENT_REPORT.md`).
   - The CAD audit showed failing checks (`mini_project/audit/audit_report.md`).
-- **Videos (outside the repo):** `C:\cde1302_course\photos\arena\`: `1st flight test.mp4`, `1903.mp4`, `1922.mp4`, `1958.mp4` (10 Nov) and `1945_111126.MOV`, `2005_111126.MOV`, `2015_111126.mp4`, `2030_1st run.mp4`, `2031_2nd run.mp4` (11 Nov). Graded run 1: `graded run 1.MOV` (repo root, untracked, 58 MB; see §5.x). No video of runs 2 or 3 yet.
+- **Videos (outside the repo):** `C:\cde1302_course\photos\arena\`: `1st flight test.mp4`, `1903.mp4`, `1922.mp4`, `1958.mp4` (10 Nov) and `1945_111126.MOV`, `2005_111126.MOV`, `2015_111126.mp4`, `2030_1st run.mp4`, `2031_2nd run.mp4` (11 Nov). Graded runs 1–3: `C:\cde1302_courseideos\graded run 1.MOV`, `graded run 2.MOV`, `graded run 3.MOV` (see §5.5).
 - **Raw flight-map folder** (same images as in `mini_project/flight_test_*/flight_maps/`, plus `Tag_mission_live_map.png`): `C:\cde1302_course\flight_maps\`.
 - **Brief, briefing slides and Flying Area PDF:** `C:\cde1302_course\mini_project_brief\`.
 - **Existing report draft:** `mini_project/report/CDE1302_Mini_Project_Report.docx` / `.pdf`, built by `mini_project/report/build_report.py`. It has sections 1-8 and Appendix A, with yellow `[[placeholders]]`. `mini_project/report/check_report.ps1` checks the format.
@@ -440,9 +493,9 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 
 ## 8. Open questions for Krish (confirm before submission)
 
-1. **The .ulg for 12 Nov.** Did the SD card log the graded runs? Nothing dated 12 Nov is in the repo or in Downloads, Documents or Desktop. If there is no log, the required ULog figure has to use an 11 Nov log (20:02 is the best 3/3 run with a ULog), and the report must say so.
+1. ~~**The .ulg for 12 Nov.**~~ **Answered (12 Nov evening): there is none.** The FC's SD card rejects all writes (§5.6). The required ULog figure uses 11 Nov 20:02, and the report must say why.
 2. **The examiner's reference tag positions.** We need them to quote the localisation error. Without them, we can only report repeatability.
-3. **Run 3 drift.** Is there a video of run 3, or any note on whether the drone was visibly off the right lane? Was any tag moved between runs?
+3. **Run 3 drift.** ~~Is there a video?~~ **Answered: the run 3 video shows the drone outside the dashed right boundary on the right lane (§5.5).** Still open: was any tag moved between runs?
 4. **Did the examiner accept the landings inside the start box** in all three runs, and how did they time the runs? The 16:50 attempt: was it counted as a restart?
 5. **Which printed parts were flown:** the stock frame with the professor's camera and flow mounts, or `cad/stock_plus` parts? Which flow casing counts as "original"? The camera fwd/down offsets on the downward mount were never measured. Can they be measured now for the report?
 6. **Copy the graded-run logs** (`laptop/mission_logs/20261112_*`, git-ignored) into the repo or report appendix, so the GitHub link carries the evidence.
