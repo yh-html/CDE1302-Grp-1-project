@@ -262,7 +262,7 @@ The 21:25 tag estimates landed almost on the Flying Area PDF spots:
 
 (The errors are computed from the NOTES.md table. The PDF spots are the nominal layout; the tags were not tape-measured.)
 
-**The SD card stopped logging** after the casing work. MAVLink `SYS_STATUS` reported logging not present and the log list was empty, so the 21:22 and 21:25 flights have no `.ulg` (NOTES.md, "Not logged").
+**The SD card stopped logging** after the casing work. MAVLink `SYS_STATUS` reported logging not present and the log list was empty, so the 21:22 and 21:25 flights have no `.ulg` (NOTES.md, "Not logged"). The root cause was found on 12 Nov evening: the card cannot be written to at all (see §5.y).
 
 Also on 11 Nov: the downward camera changed the sweep slow zones to centre on the spots. The look-again offset went to 0. The camera offsets are still the 45-deg-mount values and were never re-measured (memory note on the downward camera; YAML comments).
 
@@ -278,7 +278,7 @@ Also on 11 Nov: the downward camera changed the sweep slow zones to centre on th
 | Misread IDs | 10 Nov 15:29, 19:48; 12 Nov runs 1 and 3 | tag16h5 bit errors | 3-frame rule, merge radius | Fixed (worked on 12 Nov) |
 | Motion blur | 10 Nov 19:18 | 0.20 m/s in low light | 0.144 m/s + 0.06 m/s slow zones | Fixed |
 | Backwards drift on the first leg | 6 Nov, 10 Nov 15:22/16:09/16:10/17:47, 12 Nov 16:50 | Not diagnosed (no .ulg for 12 Nov) | Soft and hard fences catch it | Open |
-| Hardware | 10 Nov: GND wire off; Oct: PETG guards broke; 11 Nov: SD card stopped logging | | Resoldered; guards redesigned; SD card unresolved | See section 8 |
+| Hardware | 10 Nov: GND wire off; Oct: PETG guards broke; 11 Nov: SD card stopped logging | SD card: every write fails with errno 22, so params and logs can't be saved (§5.y) | Resoldered; guards redesigned; SD card diagnosed, needs a reformat or replacement | §5.y |
 
 ---
 
@@ -384,6 +384,31 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 | 113–117 s | "It's not stable at all today, huh?" | "I think it's reasonable." | **Worth addressing in the report.** The examiner noticed the wobble. The run 1 map shows ±0.1–0.2 m lane wander from the optical-flow position hold (no motion capture, no compass). Discuss this as a known limitation (§6). |
 | 121–128 s | "All three already?" / "Easy mark, right? Just scan all three." | "Automatically." | Positive: the examiner acknowledged the autonomous 3/3. |
 
+### 5.y Why there is no PX4 log (.ulg) for the graded run
+
+After the graded run the drone was stripped down to the flight controller. On 12 Nov evening the FC was read over USB (COM10) using MAVLink. The checks were the log-list request (`LOG_REQUEST_LIST`) and the PX4 shell commands `logger status`, `ls` and `dmesg`.
+
+| Check | Result |
+|---|---|
+| Log list over MAVLink | **0 logs** |
+| `ls /fs/microsd/log` | **empty** |
+| `logger status` | Running in mode "all", 143 subscriptions, "Not logging" (normal when disarmed) |
+| `SDLOG_MODE` | 0, which means log from arm to disarm (correct) |
+| `df -h` | SD card mounted, vfat, 3580 MB, 169 MB used, 3410 MB free |
+| Files on the card | `params` 0 B, `logdata.txt` 0 B, `dataman` 68 KB, `parameters_backup.bson` 2 KB, `param_import_fail.txt` 1.3 KB (could not be read: "read failed: Connection timed out") |
+| `dmesg` | Repeated `ERROR [tinybson] file write error -1, errno:22 (Invalid argument)`, `parameter export to /fs/microsd/params failed`, and finally `param auto save failed (-1)` |
+
+**Diagnosis.** The logger was configured correctly and was running. Space was not the problem either: the card is mounted and has room. **Every write to the card fails** with errno 22 (EINVAL), which points to a corrupted FAT filesystem or a failing card. The logger therefore could not create a .ulg when the drone armed. This started after the casing work on 11 Nov; flights up to 11 Nov 20:29 have ULogs.
+
+**What this means for the evidence:**
+- No 12 Nov flight has a PX4 log. The graded-run evidence is the laptop mission logs in `laptop/mission_logs/20261112_*`: telemetry at 10 Hz, events, and every tag observation. The live-map screenshots and the run 1 video back them up.
+- The required ULog analysis figure uses the 11 Nov 20:02 flight, a 3/3 run with a ULog.
+- **Possible side effect (inferred, not verified):** parameter auto-save also fails. Parameter and calibration changes may therefore not have survived a power cycle, which could be why recalibrating before every flight was necessary. This could be checked after the card is fixed: change a parameter, reboot, read it back.
+
+**Fix (not yet done).** Copy `parameters_backup.bson` off the card. Reformat the card as FAT32 on a PC, or replace it. Then confirm `logger status` shows a log being written while the drone is armed. A good addition to the pre-flight checklist: confirm the log list grows after a short arm and disarm.
+
+This is a usable case for the report's optional abnormal-behaviour section: the symptom, the hypotheses, the evidence from the shell output above, and the diagnosis.
+
 ---
 
 ## 6. Limitations and future work
@@ -398,7 +423,7 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 4. **Two lanes assume the tags are on the marked spots.** For tags anywhere, use a 5-lane plan (about 2x longer). Look-again (re-visiting single glimpses) is coded but disabled. With a fix for the misread trigger, it would have rescued run 3's single ID 2 frame.
 5. **No touchdown signal.** Landing equals the command plus 8 s.
 6. **Wi-Fi robustness.** Gaps of 2-3 s with the camera stream on. The 3 s stale timeout is a blunt fix.
-7. **Logging.** The FC SD card stopped writing .ulg files on 11 Nov, so the best runs have no PX4 log.
+7. **Logging.** The FC SD card stopped accepting writes on 11 Nov, so the best runs, including all of 12 Nov, have no PX4 log. A pre-flight check of `logger status` or the log list would have caught it before the graded run. Future work: add that check to the checklist and keep a spare formatted card (§5.y).
 8. **Backwards drift on the first leg** was never diagnosed.
 9. **Battery:** one run lost power mid-flight. There is no battery-voltage check in the mission.
 
@@ -440,7 +465,7 @@ Examiner's questions and the answers given. The "Correct for the report" column 
 
 ## 8. Open questions for Krish (confirm before submission)
 
-1. **The .ulg for 12 Nov.** Did the SD card log the graded runs? Nothing dated 12 Nov is in the repo or in Downloads, Documents or Desktop. If there is no log, the required ULog figure has to use an 11 Nov log (20:02 is the best 3/3 run with a ULog), and the report must say so.
+1. ~~**The .ulg for 12 Nov.**~~ **Answered (12 Nov evening): there is none.** The FC's SD card rejects all writes (§5.y). The required ULog figure uses 11 Nov 20:02, and the report must say why.
 2. **The examiner's reference tag positions.** We need them to quote the localisation error. Without them, we can only report repeatability.
 3. **Run 3 drift.** Is there a video of run 3, or any note on whether the drone was visibly off the right lane? Was any tag moved between runs?
 4. **Did the examiner accept the landings inside the start box** in all three runs, and how did they time the runs? The 16:50 attempt: was it counted as a restart?
