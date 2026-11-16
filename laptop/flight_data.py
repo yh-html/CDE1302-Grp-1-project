@@ -27,6 +27,18 @@ from typing import Optional
 import numpy as np
 
 ARMED = 2          # vehicle_status.arming_state value for "armed"
+
+# vehicle_status.nav_state -> flight mode name (PX4 uORB, v1.13-v1.15)
+NAV_STATE_NAMES = {
+    0: "Manual", 1: "Altitude", 2: "Position", 3: "Mission", 4: "Hold",
+    5: "Return", 10: "Acro", 12: "Descend", 13: "Termination", 14: "Offboard",
+    15: "Stabilized", 17: "Takeoff", 18: "Land", 19: "Follow", 20: "Precision land",
+    21: "Orbit", 22: "VTOL takeoff",
+}
+
+
+def mode_name(nav_state: int) -> str:
+    return NAV_STATE_NAMES.get(int(nav_state), f"nav_state {int(nav_state)}")
 _TOPICS = ["vehicle_local_position", "vehicle_status", "vehicle_attitude",
            "vehicle_land_detected"]
 
@@ -50,6 +62,8 @@ class FlightLog:
     att_q: Optional[np.ndarray] = None  # (N, 4) w, x, y, z  (body FRD -> NED)
     land_t: Optional[np.ndarray] = None
     landed: Optional[np.ndarray] = None
+    mode_t: Optional[np.ndarray] = None       # vehicle_status timestamps (s)
+    mode: Optional[np.ndarray] = None         # vehicle_status.nav_state
     warnings: list[str] = field(default_factory=list)
 
     def pos_at(self, t: float) -> tuple[float, float, float]:
@@ -80,6 +94,30 @@ class FlightLog:
         if i > 0 and abs(self.att_t[i - 1] - t) < abs(self.att_t[i] - t):
             i -= 1
         return self.att_q[i]
+
+    def mode_segments(self, t0: float, t1: float) -> list[tuple[float, float, str]]:
+        """Flight-mode intervals (start, end, name) clipped to [t0, t1]."""
+        if self.mode_t is None or len(self.mode_t) == 0:
+            return []
+        out: list[tuple[float, float, str]] = []
+        for i, (ts, m) in enumerate(zip(self.mode_t, self.mode)):
+            te = float(self.mode_t[i + 1]) if i + 1 < len(self.mode_t) else t1
+            a, b = max(float(ts), t0), min(te, t1)
+            if b <= a:
+                continue
+            name = mode_name(m)
+            if out and out[-1][2] == name and abs(out[-1][1] - a) < 1e-6:
+                out[-1] = (out[-1][0], b, name)
+            else:
+                out.append((a, b, name))
+        return out
+
+    def mode_at(self, t: np.ndarray) -> list[str]:
+        """Flight-mode name for each time in t ("unknown" before the first status)."""
+        if self.mode_t is None or len(self.mode_t) == 0:
+            return ["unknown"] * len(t)
+        i = np.searchsorted(self.mode_t, t, side="right") - 1
+        return [mode_name(self.mode[k]) if k >= 0 else "unknown" for k in i]
 
     def touchdown_time(self) -> Optional[float]:
         """Last False -> True transition of vehicle_land_detected.landed."""
@@ -136,8 +174,12 @@ def load_ulg(path: str | Path) -> FlightLog:
 
     vs = _dataset(ulog, "vehicle_status")
     if vs is not None:
-        flog.arm_intervals = _arm_intervals(
-            np.asarray(vs["timestamp"], float) * 1e-6, np.asarray(vs["arming_state"]))
+        vs_t = np.asarray(vs["timestamp"], float) * 1e-6
+        flog.arm_intervals = _arm_intervals(vs_t, np.asarray(vs["arming_state"]))
+        if "nav_state" in vs:
+            flog.mode_t, flog.mode = vs_t, np.asarray(vs["nav_state"]).astype(int)
+    if flog.mode_t is None:
+        flog.warnings.append("no vehicle_status.nav_state: flight modes not shown")
     if not flog.arm_intervals:
         flog.warnings.append("no armed interval in vehicle_status: using the whole log "
                              "as the flight, so start/landing positions are the first/last samples")
