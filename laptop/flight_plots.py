@@ -24,6 +24,30 @@ import numpy as np                                  # noqa: E402
 from flight_data import FlightLog, MissionRun, SyncResult     # noqa: E402
 from tag_localizer import CameraGeometry, camera_to_local_full  # noqa: E402
 
+# Fixed colour per PX4 flight mode, so every figure in the report agrees.
+MODE_COLORS = {
+    "Offboard": "tab:blue", "Position": "tab:orange", "Altitude": "tab:purple",
+    "Land": "tab:red", "Hold": "tab:gray", "Takeoff": "tab:green",
+    "Manual": "tab:brown", "Stabilized": "tab:brown", "Return": "tab:cyan",
+    "Descend": "tab:pink", "Mission": "tab:olive",
+}
+
+
+def mode_color(name: str) -> str:
+    return MODE_COLORS.get(name, "black")
+
+
+def _mode_runs(f: FlightLog, sel: np.ndarray):
+    """Contiguous runs of samples (indices into the selected arrays) sharing one mode.
+    Each run includes the first sample of the next one so the line has no gaps."""
+    names = f.mode_at(f.t[sel])
+    runs, start = [], 0
+    for i in range(1, len(names) + 1):
+        if i == len(names) or names[i] != names[start]:
+            runs.append((names[start], start, min(i + 1, len(names))))
+            start = i
+    return runs
+
 
 @dataclass
 class TagResult:
@@ -148,8 +172,12 @@ def _relocalize(run: MissionRun, flog: FlightLog, sync: SyncResult,
 # Figures
 # ---------------------------------------------------------------------------
 
-def plot_overview(a: Analysis, path: Path, area: Optional[tuple] = None) -> None:
-    """2-D top view plus altitude and speed against time."""
+def plot_overview(a: Analysis, path: Path, area: Optional[tuple] = None,
+                  color_by: str = "mode") -> None:
+    """2-D top view plus altitude and speed against time.
+
+    color_by="mode" colours the path by PX4 flight mode (vehicle_status.nav_state)
+    and shades the time plots; "time" colours the path by time since arming."""
     fig = plt.figure(figsize=(13, 7.5))
     gs = fig.add_gridspec(2, 2, width_ratios=[1.6, 1], hspace=0.35, wspace=0.22)
     ax = fig.add_subplot(gs[:, 0])
@@ -165,10 +193,26 @@ def plot_overview(a: Analysis, path: Path, area: Optional[tuple] = None) -> None
     if f is not None:
         w0, w1 = f.window()
         sel = (f.t >= w0) & (f.t <= w1)
-        sc = ax.scatter(f.y[sel], f.x[sel], c=f.t[sel] - w0, s=6, cmap="viridis", zorder=3)
-        ax.plot(f.y[sel], f.x[sel], color="0.6", lw=0.8, zorder=2, label="PX4 flight path")
-        cb = fig.colorbar(sc, ax=ax, fraction=0.035, pad=0.02)
-        cb.set_label("time since arming (s)")
+        if color_by == "mode" and f.mode_t is not None:
+            xs, ys, ts = f.x[sel], f.y[sel], f.t[sel]
+            seen, last_lab = set(), -1e9
+            for k, (name, i0, i1) in enumerate(_mode_runs(f, sel)):
+                lab = None if name in seen else f"PX4 path: {name}"
+                seen.add(name)
+                ax.plot(ys[i0:i1], xs[i0:i1], color=mode_color(name), lw=2.2, zorder=3, label=lab)
+                if k > 0:                               # mark where the mode changed
+                    ax.plot(ys[i0], xs[i0], "D", ms=6, mfc=mode_color(name), mec="k", zorder=6)
+                    if ts[i1 - 1] - ts[i0] < 1.0 or ts[i0] - last_lab < 2.0:
+                        continue                        # skip labels on blips / crowded changes
+                    last_lab = ts[i0]
+                    ax.annotate(f"{name} @ {ts[i0] - w0:.1f} s", (ys[i0], xs[i0]),
+                                xytext=(6, -12), textcoords="offset points", fontsize=7,
+                                color=mode_color(name), zorder=8)
+        else:
+            sc = ax.scatter(f.y[sel], f.x[sel], c=f.t[sel] - w0, s=6, cmap="viridis", zorder=3)
+            ax.plot(f.y[sel], f.x[sel], color="0.6", lw=0.8, zorder=2, label="PX4 flight path")
+            cb = fig.colorbar(sc, ax=ax, fraction=0.035, pad=0.02)
+            cb.set_label("time since arming (s)")
         ax.plot(f.y[sel][0], f.x[sel][0], "^", ms=13, mfc="limegreen", mec="k", zorder=6,
                 label="start (arm)")
         ax.plot(f.y[sel][-1], f.x[sel][-1], "s", ms=12, mfc="tomato", mec="k", zorder=6,
@@ -205,8 +249,15 @@ def plot_overview(a: Analysis, path: Path, area: Optional[tuple] = None) -> None
         w0, w1 = f.window()
         sel = (f.t >= w0 - 2) & (f.t <= w1 + 2)
         tt = f.t[sel] - w0
-        ax_z.plot(tt, -(f.z[sel] - f.z[sel][0]), color="tab:green")
-        ax_v.plot(tt, f.speed()[sel], color="tab:orange")
+        if color_by == "mode":
+            for m0, m1, name in f.mode_segments(w0 - 2, w1 + 2):
+                for axx in (ax_z, ax_v):
+                    axx.axvspan(m0 - w0, m1 - w0, color=mode_color(name), alpha=0.13, lw=0)
+                if m1 - m0 > 0.12 * (w1 - w0 + 4):      # label only the wider bands
+                    ax_z.text((m0 + m1) / 2 - w0, 1.0, name, transform=ax_z.get_xaxis_transform(),
+                              ha="center", va="bottom", fontsize=7, color=mode_color(name))
+        ax_z.plot(tt, -(f.z[sel] - f.z[sel][0]), color="black" if color_by == "mode" else "tab:green")
+        ax_v.plot(tt, f.speed()[sel], color="black" if color_by == "mode" else "tab:orange")
         if run is not None and sync is not None:
             for name, color in (("TAKEOFF_CMD_SENT", "tab:blue"), ("LANDING_CMD_SENT", "tab:red")):
                 for ts in run.event_times(name):
@@ -223,8 +274,8 @@ def plot_overview(a: Analysis, path: Path, area: Optional[tuple] = None) -> None
             axx.text(0.5, 0.5, "no .ulg given", ha="center", va="center", transform=axx.transAxes)
     ax_z.set_ylabel("altitude (m)")
     ax_v.set_ylabel("horizontal speed (m/s)")
-    ax_z.set_title("Altitude  (blue dashed: takeoff cmd, red dashed: landing cmd, gold: first sightings)",
-                   fontsize=8)
+    ax_z.set_title("Altitude  (dashed: takeoff / landing cmd, gold: first tag sightings"
+                   + (",\nshading: flight mode)" if color_by == "mode" else ")"), fontsize=8, pad=12)
     ax_v.set_title("Speed", fontsize=9)
     for axx in (ax_z, ax_v):
         axx.grid(alpha=0.3)
@@ -240,7 +291,15 @@ def plot_3d(a: Analysis, path: Path) -> None:
     if f is not None:
         w0, w1 = f.window()
         s = (f.t >= w0) & (f.t <= w1)
-        ax.plot(f.y[s], f.x[s], -(f.z[s] - f.z[s][0]), color="tab:blue", lw=1.5, label="PX4 flight path")
+        alt = -(f.z[s] - f.z[s][0])
+        if f.mode_t is not None:
+            seen = set()
+            for name, i0, i1 in _mode_runs(f, s):
+                ax.plot(f.y[s][i0:i1], f.x[s][i0:i1], alt[i0:i1], color=mode_color(name), lw=1.8,
+                        label=None if name in seen else f"PX4 path: {name}")
+                seen.add(name)
+        else:
+            ax.plot(f.y[s], f.x[s], alt, color="tab:blue", lw=1.5, label="PX4 flight path")
         ax.plot([f.y[s][0]], [f.x[s][0]], [0], "^", ms=11, mfc="limegreen", mec="k", label="start")
         ax.plot([f.y[s][-1]], [f.x[s][-1]], [0], "s", ms=10, mfc="tomato", mec="k", label="landing")
     for t in a.tags:
@@ -283,6 +342,14 @@ def write_report(a: Analysis, md_path: Path, json_path: Path, ulg: Optional[str]
         if k in a.metrics:
             L.append(f"| {lab} | {a.metrics[k]} |")
 
+    f = a.flog
+    if f is not None and f.mode_t is not None:
+        w0, w1 = f.window()
+        L += ["", "## Flight modes (PX4 vehicle_status.nav_state)", "",
+              "| From (s since arming) | To (s) | Duration (s) | Mode |", "|---|---|---|---|"]
+        for m0, m1, name in f.mode_segments(w0, w1):
+            L.append(f"| {m0 - w0:.1f} | {m1 - w0:.1f} | {m1 - m0:.1f} | {name} |")
+
     if a.tags:
         L += ["", "## AprilTags", "",
               "| ID | x N (m) | y E (m) | sightings | spread (m) | first seen (s) | attitude-corrected x, y (m) | shift (m) | truth | error (m) | error corrected (m) |",
@@ -309,7 +376,12 @@ def write_report(a: Analysis, md_path: Path, json_path: Path, ulg: Optional[str]
           "(for example plot the raw `vehicle_local_position` in PlotJuggler or Flight Review)."]
     md_path.write_text("\n".join(L) + "\n", encoding="utf-8")
 
-    payload = {"metrics": a.metrics, "notes": a.notes,
+    modes = []
+    if f is not None and f.mode_t is not None:
+        w0, w1 = f.window()
+        modes = [{"from_s": round(m0 - w0, 2), "to_s": round(m1 - w0, 2), "mode": n}
+                 for m0, m1, n in f.mode_segments(w0, w1)]
+    payload = {"metrics": a.metrics, "notes": a.notes, "flight_modes": modes,
                "sync": None if a.sync is None else {
                    "offset_s": a.sync.offset_s, "method": a.sync.method,
                    "quality": a.sync.quality, "rms_m": a.sync.rms_m},

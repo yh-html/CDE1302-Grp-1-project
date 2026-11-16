@@ -67,6 +67,8 @@ def main(argv=None) -> int:
                    help="Assumed seconds from the takeoff command to arming (default 2).")
     p.add_argument("--offset-s", type=float,
                    help="Manual offset: t_ulog = t_mission + offset (overrides --sync).")
+    p.add_argument("--color-by", choices=["mode", "time"], default="mode",
+                   help="Colour the path by PX4 flight mode (default) or by time since arming.")
     p.add_argument("--3d", dest="plot3d", action="store_true", help="Also write flight_3d.png.")
     args = p.parse_args(argv)
 
@@ -94,7 +96,7 @@ def main(argv=None) -> int:
     out.mkdir(parents=True, exist_ok=True)
 
     result = analyze(flog, run, sync, camera=cam, truth=parse_truth(args.truth))
-    plot_overview(result, out / "flight_overview.png", area=area)
+    plot_overview(result, out / "flight_overview.png", area=area, color_by=args.color_by)
     if args.plot3d:
         plot_3d(result, out / "flight_3d.png")
     write_report(result, out / "flight_summary.md", out / "flight_summary.json",
